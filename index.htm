@@ -392,7 +392,7 @@
     </div>
 
     <div class="sidebar">
-      <div class="sidebar-header">Your videos</div>
+      <div class="sidebar-header">All videos</div>
       <div id="playlist"></div>
     </div>
   </div>
@@ -406,7 +406,7 @@
     let currentUserAvatar = '';
 
     const USERS_KEY = 'gitube_users';
-    const SESSION_KEY = 'gitube_session_user'; // Используем localStorage для сессии
+    const SESSION_KEY = 'gitube_session_user';
     const MIN_PASSWORD = 6;
 
     const fileInput = document.getElementById('fileInput');
@@ -433,8 +433,7 @@
     const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaaaaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
     // ===== 1. DB INITIALIZATION =====
-    // Убедитесь, что имя БД и версия совпадают
-    const dbRequest = indexedDB.open("LocalTubeDB", 2);
+    const dbRequest = indexedDB.open("LocalTubeDB", 4); // Подняли версию для совместимости
 
     dbRequest.onupgradeneeded = function(e) {
       db = e.target.result;
@@ -445,24 +444,26 @@
 
     dbRequest.onsuccess = function(e) {
       db = e.target.result;
-      initApp(); // Запускаем приложение только после загрузки БД
-    };
-
-    dbRequest.onerror = function(e) {
-      console.error("DB Error:", e.target.error);
-      alert("Ошибка при открытии базы данных. Попробуйте очистить кеш браузера.");
+      initApp();
     };
 
     // ===== 2. APP INIT =====
     function initApp() {
-      const savedUser = localStorage.getItem(SESSION_KEY);
+      // Пытаемся получить сессию из Cookie или LocalStorage (для работы на file://)
+      let savedUser = null;
+      const cookieRow = document.cookie.split('; ').find(r => r.startsWith('gitube_user='));
+      
+      if (cookieRow) {
+        savedUser = decodeURIComponent(cookieRow.split('=')[1]);
+      } else {
+        savedUser = localStorage.getItem(SESSION_KEY);
+      }
+
       const users = getUsers();
       
       if (savedUser && users[savedUser]) {
-        // Если сессия есть, входим
         executeLogin(savedUser, users[savedUser].avatar);
       } else {
-        // Иначе показываем экран входа
         showAuthScreen();
       }
     }
@@ -494,14 +495,16 @@
       currentUser = username;
       currentUserAvatar = avatar || defaultAvatar;
       
-      localStorage.setItem(SESSION_KEY, username); // Сохраняем сессию
+      // Сохраняем сессию (Cookie + LocalStorage)
+      localStorage.setItem(SESSION_KEY, username);
+      document.cookie = `gitube_user=${encodeURIComponent(username)}; path=/; max-age=${30*24*60*60}; SameSite=Lax`;
       
       overlay.classList.add('hidden');
       userProfile.style.display = 'flex';
       headerUsername.textContent = currentUser;
       headerAvatar.src = currentUserAvatar;
       
-      loadVideos(); // Загружаем видео для этого пользователя
+      loadVideos(); // Загружаем ВСЕ видео
     }
 
     function showAuthScreen() {
@@ -556,7 +559,8 @@
 
     // Выход
     logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem(SESSION_KEY); // Удаляем сессию
+      localStorage.removeItem(SESSION_KEY);
+      document.cookie = 'gitube_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       showAuthScreen();
     });
 
@@ -575,7 +579,7 @@
           
           currentUserAvatar = base64Img;
           headerAvatar.src = currentUserAvatar;
-          renderPlaylist(); // Обновляем аватарки в списке
+          loadVideos(); // Обновляем список, чтобы аватарки обновились
         }
       };
       reader.readAsDataURL(file);
@@ -591,27 +595,25 @@
       const req = store.getAll();
 
       req.onsuccess = function() {
-        // Очищаем старые URL
         videos.forEach(v => URL.revokeObjectURL(v.url));
+        const users = getUsers(); // Берем актуальные данные о пользователях
 
-        // Фильтруем: берем видео текущего юзера.
-        // Если есть видео без автора (старая версия), привязываем к текущему.
-        let userVideos = req.result.filter(item => item.uploader === currentUser || !item.uploader);
-        
-        userVideos.forEach(vid => {
-          if (!vid.uploader) {
-            vid.uploader = currentUser;
-            const updateTx = db.transaction("videos", "readwrite");
-            updateTx.objectStore("videos").put(vid);
-          }
+        // Берем ВСЕ видео из базы
+        videos = req.result.map(item => {
+          // Ищем автора видео, чтобы взять его аватарку
+          const authorName = item.uploader || 'Unknown';
+          const authorAvatar = (users[authorName] && users[authorName].avatar) 
+                               ? users[authorName].avatar 
+                               : defaultAvatar;
+                               
+          return {
+            id: item.id,
+            title: item.title,
+            uploader: authorName,
+            avatar: authorAvatar,
+            url: URL.createObjectURL(item.file)
+          };
         });
-
-        videos = userVideos.map(item => ({
-          id: item.id,
-          title: item.title,
-          uploader: item.uploader,
-          url: URL.createObjectURL(item.file)
-        }));
 
         renderPlaylist();
       };
@@ -630,7 +632,7 @@
         store.add({
           title: cleanName,
           file: file,
-          uploader: currentUser // Привязка к текущему пользователю
+          uploader: currentUser // Привязываем к текущему пользователю
         });
       });
 
@@ -658,6 +660,11 @@
         item.className = 'video-item' + (vid.id === activeId ? ' active' : '');
         item.onclick = () => playVideo(vid.id);
 
+        // Кнопку удаления показываем только если видео загрузил текущий пользователь
+        const deleteBtnHTML = vid.uploader === currentUser 
+          ? `<button class="delete-btn" onclick="deleteVideo(event, ${vid.id})">✕</button>` 
+          : '';
+
         item.innerHTML = `
           <div class="thumb-box">
             <video src="${vid.url}#t=1" preload="metadata" muted></video>
@@ -665,11 +672,11 @@
           <div class="item-info">
             <div class="item-title">${vid.title}</div>
             <div class="item-meta">
-              <img class="meta-avatar" src="${currentUserAvatar}" alt="">
+              <img class="meta-avatar" src="${vid.avatar}" alt="">
               <span>${vid.uploader}</span>
             </div>
           </div>
-          <button class="delete-btn" onclick="deleteVideo(event, ${vid.id})">✕</button>
+          ${deleteBtnHTML}
         `;
         playlistEl.appendChild(item);
       });
@@ -690,6 +697,11 @@
 
     window.deleteVideo = function(event, id) {
       event.stopPropagation();
+      const vid = videos.find(v => v.id === id);
+      
+      // Защита: удалить может только автор
+      if (!vid || vid.uploader !== currentUser) return;
+
       const tx = db.transaction("videos", "readwrite");
       tx.objectStore("videos").delete(id);
       tx.oncomplete = function() {
