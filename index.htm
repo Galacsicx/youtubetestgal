@@ -1,0 +1,369 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>GI.tube</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #0f0f0f;
+      color: #ffffff;
+      min-height: 100vh;
+    }
+
+    header {
+      height: 60px;
+      background-color: #0f0f0f;
+      border-bottom: 1px solid #272727;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .upload-btn {
+      background-color: #272727;
+      color: #ffffff;
+      border: 1px solid #3f3f3f;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .upload-btn:hover {
+      background-color: #3f3f3f;
+    }
+
+    .main-layout {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .player-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .video-container {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background-color: #000000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    video::-webkit-media-controls-panel {
+      background-image: none !important;
+    }
+
+    .video-details {
+      margin-top: 14px;
+    }
+
+    .current-title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .sidebar {
+      width: 380px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-header {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f1f1f1;
+      margin-bottom: 4px;
+    }
+
+    .empty-list {
+      color: #717171;
+      font-size: 13px;
+      padding: 12px 0;
+    }
+
+    .video-item {
+      display: flex;
+      gap: 12px;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 10px;
+      transition: background 0.2s;
+      position: relative;
+      align-items: center;
+    }
+
+    .video-item:hover {
+      background-color: #272727;
+    }
+
+    .video-item.active {
+      background-color: #272727;
+      border: 1px solid #3f3f3f;
+    }
+
+    .thumb-box {
+      width: 140px;
+      height: 78px;
+      background-color: #1f1f1f;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .thumb-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .item-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: #717171;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .delete-btn:hover {
+      color: #ff4e4e;
+      background-color: rgba(255, 78, 78, 0.15);
+    }
+
+    @media (max-width: 950px) {
+      .main-layout {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <input type="file" id="fileInput" accept="video/*" multiple style="display: none;">
+    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+      <span>+ Download video</span>
+    </button>
+  </header>
+
+  <div class="main-layout">
+    <div class="player-section">
+      <div id="playerWrapper" style="display: none;">
+        <div class="video-container">
+          <video id="mainPlayer" controls controlsList="nodownload noplaybackrate"></video>
+        </div>
+        <div class="video-details">
+          <div class="current-title" id="mainTitle"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="sidebar-header">video</div>
+      <div id="playlist"></div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const playerWrapper = document.getElementById('playerWrapper');
+    const mainPlayer = document.getElementById('mainPlayer');
+    const mainTitle = document.getElementById('mainTitle');
+    const playlistEl = document.getElementById('playlist');
+
+    let db;
+    let videos = [];
+    let activeId = null;
+
+    mainPlayer.addEventListener('ended', function() {
+      mainPlayer.controls = false;
+    });
+
+    mainPlayer.addEventListener('mouseenter', function() {
+      mainPlayer.controls = true;
+    });
+
+    mainPlayer.addEventListener('play', function() {
+      mainPlayer.controls = true;
+    });
+
+    const request = indexedDB.open("LocalTubeDB", 1);
+
+    request.onupgradeneeded = function(e) {
+      db = e.target.result;
+      if (!db.objectStoreNames.contains("videos")) {
+        db.createObjectStore("videos", { keyPath: "id", autoIncrement: true });
+      }
+    };
+
+    request.onsuccess = function(e) {
+      db = e.target.result;
+      loadVideosFromDB();
+    };
+
+    function loadVideosFromDB() {
+      const tx = db.transaction("videos", "readonly");
+      const store = tx.objectStore("videos");
+      const req = store.getAll();
+
+      req.onsuccess = function() {
+        videos.forEach(v => URL.revokeObjectURL(v.url));
+
+        videos = req.result.map(item => ({
+          id: item.id,
+          title: item.title,
+          url: URL.createObjectURL(item.file)
+        }));
+
+        if (activeId !== null && !videos.some(v => v.id === activeId)) {
+          hidePlayer();
+        }
+
+        renderPlaylist();
+      };
+    }
+
+    function hidePlayer() {
+      activeId = null;
+      mainPlayer.pause();
+      mainPlayer.removeAttribute('src');
+      mainPlayer.load();
+      playerWrapper.style.display = 'none';
+    }
+
+    function renderPlaylist() {
+      playlistEl.innerHTML = "";
+
+      if (videos.length === 0) {
+        playlistEl.innerHTML = '<div class="empty-list">Blah blah bla</div>';
+        return;
+      }
+
+      videos.forEach(vid => {
+        const item = document.createElement('div');
+        item.className = 'video-item' + (vid.id === activeId ? ' active' : '');
+        item.onclick = () => playVideo(vid.id);
+
+        item.innerHTML = `
+          <div class="thumb-box">
+            <video src="${vid.url}#t=1" preload="metadata" muted></video>
+          </div>
+          <div class="item-info">
+            <div class="item-title">${vid.title}</div>
+          </div>
+          <button class="delete-btn" onclick="deleteVideo(event, ${vid.id})">✕</button>
+        `;
+
+        playlistEl.appendChild(item);
+      });
+    }
+
+    function playVideo(id) {
+      const selected = videos.find(v => v.id === id);
+      if (!selected) return;
+
+      activeId = id;
+      playerWrapper.style.display = 'block';
+
+      mainPlayer.controls = true;
+      mainPlayer.src = selected.url;
+      mainPlayer.play().catch(() => {});
+      mainTitle.textContent = selected.title;
+      renderPlaylist();
+    }
+
+    function deleteVideo(event, id) {
+      event.stopPropagation();
+      const tx = db.transaction("videos", "readwrite");
+      const store = tx.objectStore("videos");
+      store.delete(id);
+
+      tx.oncomplete = function() {
+        loadVideosFromDB();
+      };
+    }
+
+    fileInput.addEventListener('change', function(event) {
+      const files = Array.from(event.target.files);
+      if (files.length === 0 || !db) return;
+
+      const tx = db.transaction("videos", "readwrite");
+      const store = tx.objectStore("videos");
+
+      files.forEach(file => {
+        const cleanName = file.name.replace(/\.[^/.]+$/, "");
+
+        store.add({
+          title: cleanName,
+          file: file
+        });
+      });
+
+      tx.oncomplete = function() {
+        fileInput.value = "";
+        loadVideosFromDB();
+      };
+    });
+  </script>
+
+</body>
+</html>
