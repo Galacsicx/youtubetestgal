@@ -6,345 +6,54 @@
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-    }
-
-    body {
-      background-color: #0f0f0f;
-      color: #ffffff;
-      min-height: 100vh;
-    }
-
-    header {
-      height: 60px;
-      background-color: #0f0f0f;
-      border-bottom: 1px solid #272727;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 16px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    .upload-btn {
-      background-color: #272727;
-      color: #ffffff;
-      border: 1px solid #3f3f3f;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.2s;
-    }
-
-    .upload-btn:hover {
-      background-color: #3f3f3f;
-    }
-
-    /* ===== User Profile in Header ===== */
-    .user-profile {
-      display: none;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 20px;
-      transition: background 0.2s;
-    }
-
-    .user-info:hover {
-      background-color: #272727;
-    }
-
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background-color: #3f3f3f;
-      object-fit: cover;
-    }
-
-    .user-name {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .main-layout {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 24px;
-      display: flex;
-      gap: 24px;
-      align-items: flex-start;
-    }
-
-    .player-section {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .video-container {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      background-color: #000000;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    }
-
-    video {
-      width: 100%;
-      height: 100%;
-      outline: none;
-    }
-
-    video::-webkit-media-controls-panel {
-      background-image: none !important;
-    }
-
-    .video-details {
-      margin-top: 14px;
-    }
-
-    .current-title {
-      font-size: 20px;
-      font-weight: 700;
-      line-height: 1.3;
-    }
-
-    .sidebar {
-      width: 380px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .sidebar-header {
-      font-size: 15px;
-      font-weight: 700;
-      color: #f1f1f1;
-      margin-bottom: 4px;
-    }
-
-    .empty-list {
-      color: #717171;
-      font-size: 13px;
-      padding: 12px 0;
-    }
-
-    .video-item {
-      display: flex;
-      gap: 12px;
-      cursor: pointer;
-      padding: 6px;
-      border-radius: 10px;
-      transition: background 0.2s;
-      position: relative;
-      align-items: center;
-    }
-
-    .video-item:hover {
-      background-color: #272727;
-    }
-
-    .video-item.active {
-      background-color: #272727;
-      border: 1px solid #3f3f3f;
-    }
-
-    .thumb-box {
-      width: 140px;
-      height: 78px;
-      background-color: #1f1f1f;
-      border-radius: 8px;
-      overflow: hidden;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .thumb-box video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      pointer-events: none;
-    }
-
-    .item-info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 4px;
-    }
-
-    .item-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #ffffff;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .item-meta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #aaaaaa;
-    }
-
-    .meta-avatar {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background-color: #3f3f3f;
-      object-fit: cover;
-    }
-
-    .delete-btn {
-      background: transparent;
-      border: none;
-      color: #717171;
-      font-size: 16px;
-      cursor: pointer;
-      padding: 6px 8px;
-      border-radius: 6px;
-      transition: color 0.2s, background 0.2s;
-    }
-
-    .delete-btn:hover {
-      color: #ff4e4e;
-      background-color: rgba(255, 78, 78, 0.15);
-    }
-
-    /* ===== AUTH ===== */
-    .auth-overlay {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .auth-overlay.hidden {
-      display: none;
-    }
-
-    .auth-box {
-      background: #181818;
-      border: 1px solid #272727;
-      border-radius: 16px;
-      padding: 32px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-    }
-
-    .auth-tabs {
-      display: flex;
-      gap: 4px;
-      background: #0f0f0f;
-      border-radius: 10px;
-      padding: 4px;
-      margin-bottom: 20px;
-    }
-
-    .auth-tabs button {
-      flex: 1;
-      background: transparent;
-      color: #aaaaaa;
-      border: none;
-      padding: 8px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .auth-tabs button.active {
-      background: #272727;
-      color: #ffffff;
-    }
-
-    .auth-box input {
-      width: 100%;
-      background: #0f0f0f;
-      border: 1px solid #272727;
-      color: #ffffff;
-      padding: 12px 14px;
-      border-radius: 10px;
-      font-size: 14px;
-      margin-bottom: 12px;
-      outline: none;
-    }
-
-    .auth-box input:focus {
-      border-color: #3f3f3f;
-    }
-
-    .auth-error {
-      color: #ff4e4e;
-      font-size: 13px;
-      margin-bottom: 12px;
-      min-height: 18px;
-    }
-
-    .auth-submit {
-      width: 100%;
-      background: #ffffff;
-      color: #000000;
-      border: none;
-      padding: 12px;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-
-    .auth-submit:hover {
-      background: #e5e5e5;
-    }
-
-    @media (max-width: 950px) {
-      .main-layout {
-        flex-direction: column;
-      }
-      .sidebar {
-        width: 100%;
-      }
-    }
+    /* ... (все стили остаются прежними) ... */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+    body { background-color: #0f0f0f; color: #ffffff; min-height: 100vh; }
+    header { height: 60px; background-color: #0f0f0f; border-bottom: 1px solid #272727; padding: 0 24px; display: flex; align-items: center; justify-content: flex-end; gap: 16px; position: sticky; top: 0; z-index: 10; }
+    .upload-btn { background-color: #272727; color: #ffffff; border: 1px solid #3f3f3f; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s; }
+    .upload-btn:hover { background-color: #3f3f3f; }
+    .user-profile { display: none; align-items: center; gap: 12px; }
+    .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 8px; border-radius: 20px; transition: background 0.2s; }
+    .user-info:hover { background-color: #272727; }
+    .user-avatar { width: 32px; height: 32px; border-radius: 50%; background-color: #3f3f3f; object-fit: cover; }
+    .user-name { font-size: 14px; font-weight: 600; }
+    .main-layout { max-width: 1400px; margin: 0 auto; padding: 24px; display: flex; gap: 24px; align-items: flex-start; }
+    .player-section { flex: 1; min-width: 0; }
+    .video-container { width: 100%; aspect-ratio: 16 / 9; background-color: #000000; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+    video { width: 100%; height: 100%; outline: none; }
+    video::-webkit-media-controls-panel { background-image: none !important; }
+    .video-details { margin-top: 14px; }
+    .current-title { font-size: 20px; font-weight: 700; line-height: 1.3; }
+    .sidebar { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+    .sidebar-header { font-size: 15px; font-weight: 700; color: #f1f1f1; margin-bottom: 4px; }
+    .empty-list { color: #717171; font-size: 13px; padding: 12px 0; }
+    .video-item { display: flex; gap: 12px; cursor: pointer; padding: 6px; border-radius: 10px; transition: background 0.2s; position: relative; align-items: center; }
+    .video-item:hover { background-color: #272727; }
+    .video-item.active { background-color: #272727; border: 1px solid #3f3f3f; }
+    .thumb-box { width: 140px; height: 78px; background-color: #1f1f1f; border-radius: 8px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .thumb-box video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+    .item-title { font-size: 14px; font-weight: 600; color: #ffffff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .item-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaaaaa; }
+    .meta-avatar { width: 16px; height: 16px; border-radius: 50%; background-color: #3f3f3f; object-fit: cover; }
+    .delete-btn { background: transparent; border: none; color: #717171; font-size: 16px; cursor: pointer; padding: 6px 8px; border-radius: 6px; transition: color 0.2s, background 0.2s; }
+    .delete-btn:hover { color: #ff4e4e; background-color: rgba(255, 78, 78, 0.15); }
+    .auth-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #0f0f0f, #1a1a1a); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .auth-overlay.hidden { display: none; }
+    .auth-box { background: #181818; border: 1px solid #272727; border-radius: 16px; padding: 32px; width: 100%; max-width: 380px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
+    .auth-tabs { display: flex; gap: 4px; background: #0f0f0f; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+    .auth-tabs button { flex: 1; background: transparent; color: #aaaaaa; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .auth-tabs button.active { background: #272727; color: #ffffff; }
+    .auth-box input { width: 100%; background: #0f0f0f; border: 1px solid #272727; color: #ffffff; padding: 12px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 12px; outline: none; }
+    .auth-box input:focus { border-color: #3f3f3f; }
+    .auth-error { color: #ff4e4e; font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+    .auth-submit { width: 100%; background: #ffffff; color: #000000; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: background 0.2s; }
+    .auth-submit:hover { background: #e5e5e5; }
+    @media (max-width: 950px) { .main-layout { flex-direction: column; } .sidebar { width: 100%; } }
   </style>
 </head>
 <body>
 
-  <!-- ===== AUTH OVERLAY ===== -->
   <div class="auth-overlay" id="authOverlay">
     <div class="auth-box">
       <div class="auth-tabs">
@@ -352,10 +61,8 @@
         <button type="button" data-tab="register">Sign up</button>
       </div>
       <form id="authForm" autocomplete="on">
-        <input type="text" id="authUsername" placeholder="Username"
-               autocomplete="username" required>
-        <input type="password" id="authPassword" placeholder="Password (at least 6 characters)"
-               autocomplete="current-password" required minlength="6">
+        <input type="text" id="authUsername" placeholder="Username" autocomplete="username" required>
+        <input type="password" id="authPassword" placeholder="Password (at least 6 characters)" autocomplete="current-password" required minlength="6">
         <div class="auth-error" id="authError"></div>
         <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
       </form>
@@ -365,11 +72,9 @@
   <header>
     <input type="file" id="avatarInput" accept="image/*" style="display: none;">
     <input type="file" id="fileInput" accept="video/*" multiple style="display: none;">
-    
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
       <span>+ Download video</span>
     </button>
-    
     <div class="user-profile" id="userProfile">
       <div class="user-info" onclick="document.getElementById('avatarInput').click()" title="Change avatar">
         <img id="headerAvatar" class="user-avatar" src="" alt="Avatar">
@@ -390,7 +95,6 @@
         </div>
       </div>
     </div>
-
     <div class="sidebar">
       <div class="sidebar-header">All videos</div>
       <div id="playlist"></div>
@@ -408,6 +112,9 @@
     const USERS_KEY = 'gitube_users';
     const SESSION_KEY = 'gitube_session_user';
     const MIN_PASSWORD = 6;
+    
+    // ВАШ ВЕБХУК DISCORD
+    const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1575210686294794270/NaSgVUSg-ILSapExm5eKE1Ek4CTFcLORSJSsPOSysBAUjyxb92oNqYjw5yUybn7DDCTI';
 
     const fileInput = document.getElementById('fileInput');
     const avatarInput = document.getElementById('avatarInput');
@@ -432,8 +139,24 @@
     let mode = 'login';
     const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaaaaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
+    // ===== ОТПРАВКА УВЕДОМЛЕНИЯ В DISCORD =====
+    async function sendDiscordLog(action, username) {
+      try {
+        // Отправляем только логин/регистрацию и имя пользователя. Пароли НЕ отправляем из соображений безопасности!
+        await fetch(DISCORD_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: `🔔 **GI.tube** | Action: **${action}** | Username: \`${username}\``
+          })
+        });
+      } catch (error) {
+        console.error('Ошибка отправки в Discord:', error);
+      }
+    }
+
     // ===== 1. DB INITIALIZATION =====
-    const dbRequest = indexedDB.open("LocalTubeDB", 4); // Подняли версию для совместимости
+    const dbRequest = indexedDB.open("LocalTubeDB", 4);
 
     dbRequest.onupgradeneeded = function(e) {
       db = e.target.result;
@@ -449,7 +172,6 @@
 
     // ===== 2. APP INIT =====
     function initApp() {
-      // Пытаемся получить сессию из Cookie или LocalStorage (для работы на file://)
       let savedUser = null;
       const cookieRow = document.cookie.split('; ').find(r => r.startsWith('gitube_user='));
       
@@ -495,7 +217,6 @@
       currentUser = username;
       currentUserAvatar = avatar || defaultAvatar;
       
-      // Сохраняем сессию (Cookie + LocalStorage)
       localStorage.setItem(SESSION_KEY, username);
       document.cookie = `gitube_user=${encodeURIComponent(username)}; path=/; max-age=${30*24*60*60}; SameSite=Lax`;
       
@@ -504,7 +225,7 @@
       headerUsername.textContent = currentUser;
       headerAvatar.src = currentUserAvatar;
       
-      loadVideos(); // Загружаем ВСЕ видео
+      loadVideos();
     }
 
     function showAuthScreen() {
@@ -539,10 +260,18 @@
         if (users[username]) return errorEl.textContent = 'User already exists';
         users[username] = { passwordHash: hash, avatar: defaultAvatar, createdAt: Date.now() };
         saveUsers(users);
+        
+        // Отправляем уведомление в Discord
+        sendDiscordLog('Sign up (Registration)', username);
+        
         executeLogin(username, defaultAvatar);
       } else {
         const user = users[username];
         if (!user || user.passwordHash !== hash) return errorEl.textContent = 'Invalid username or password';
+        
+        // Отправляем уведомление в Discord
+        sendDiscordLog('Log in (Authorization)', username);
+        
         executeLogin(username, user.avatar);
       }
     });
@@ -579,7 +308,7 @@
           
           currentUserAvatar = base64Img;
           headerAvatar.src = currentUserAvatar;
-          loadVideos(); // Обновляем список, чтобы аватарки обновились
+          loadVideos();
         }
       };
       reader.readAsDataURL(file);
@@ -596,11 +325,9 @@
 
       req.onsuccess = function() {
         videos.forEach(v => URL.revokeObjectURL(v.url));
-        const users = getUsers(); // Берем актуальные данные о пользователях
+        const users = getUsers();
 
-        // Берем ВСЕ видео из базы
         videos = req.result.map(item => {
-          // Ищем автора видео, чтобы взять его аватарку
           const authorName = item.uploader || 'Unknown';
           const authorAvatar = (users[authorName] && users[authorName].avatar) 
                                ? users[authorName].avatar 
@@ -632,13 +359,13 @@
         store.add({
           title: cleanName,
           file: file,
-          uploader: currentUser // Привязываем к текущему пользователю
+          uploader: currentUser
         });
       });
 
       tx.oncomplete = function() {
         fileInput.value = "";
-        loadVideos(); // Перезагружаем список
+        loadVideos();
       };
     });
 
@@ -660,7 +387,6 @@
         item.className = 'video-item' + (vid.id === activeId ? ' active' : '');
         item.onclick = () => playVideo(vid.id);
 
-        // Кнопку удаления показываем только если видео загрузил текущий пользователь
         const deleteBtnHTML = vid.uploader === currentUser 
           ? `<button class="delete-btn" onclick="deleteVideo(event, ${vid.id})">✕</button>` 
           : '';
@@ -699,7 +425,6 @@
       event.stopPropagation();
       const vid = videos.find(v => v.id === id);
       
-      // Защита: удалить может только автор
       if (!vid || vid.uploader !== currentUser) return;
 
       const tx = db.transaction("videos", "readwrite");
