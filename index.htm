@@ -27,6 +27,7 @@
       display: flex;
       align-items: center;
       justify-content: flex-end;
+      gap: 16px;
       position: sticky;
       top: 0;
       z-index: 10;
@@ -49,6 +50,40 @@
 
     .upload-btn:hover {
       background-color: #3f3f3f;
+    }
+
+    /* ===== User Profile in Header ===== */
+    .user-profile {
+      display: none;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+
+    .user-info:hover {
+      background-color: #272727;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #3f3f3f;
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
     }
 
     .main-layout {
@@ -160,6 +195,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
+      gap: 4px;
     }
 
     .item-title {
@@ -170,6 +206,22 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+
+    .item-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+
+    .meta-avatar {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: #3f3f3f;
+      object-fit: cover;
     }
 
     .delete-btn {
@@ -188,6 +240,98 @@
       background-color: rgba(255, 78, 78, 0.15);
     }
 
+    /* ===== AUTH ===== */
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .auth-overlay.hidden {
+      display: none;
+    }
+
+    .auth-box {
+      background: #181818;
+      border: 1px solid #272727;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 4px;
+      background: #0f0f0f;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+
+    .auth-tabs button {
+      flex: 1;
+      background: transparent;
+      color: #aaaaaa;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .auth-tabs button.active {
+      background: #272727;
+      color: #ffffff;
+    }
+
+    .auth-box input {
+      width: 100%;
+      background: #0f0f0f;
+      border: 1px solid #272727;
+      color: #ffffff;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .auth-box input:focus {
+      border-color: #3f3f3f;
+    }
+
+    .auth-error {
+      color: #ff4e4e;
+      font-size: 13px;
+      margin-bottom: 12px;
+      min-height: 18px;
+    }
+
+    .auth-submit {
+      width: 100%;
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .auth-submit:hover {
+      background: #e5e5e5;
+    }
+
     @media (max-width: 950px) {
       .main-layout {
         flex-direction: column;
@@ -200,11 +344,39 @@
 </head>
 <body>
 
+  <!-- ===== AUTH OVERLAY ===== -->
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button type="button" data-tab="login" class="active">Log in</button>
+        <button type="button" data-tab="register">Sign up</button>
+      </div>
+      <form id="authForm" autocomplete="on">
+        <input type="text" id="authUsername" placeholder="Username"
+               autocomplete="username" required>
+        <input type="password" id="authPassword" placeholder="Password (at least 6 characters)"
+               autocomplete="current-password" required minlength="6">
+        <div class="auth-error" id="authError"></div>
+        <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
+      </form>
+    </div>
+  </div>
+
   <header>
+    <input type="file" id="avatarInput" accept="image/*" style="display: none;">
     <input type="file" id="fileInput" accept="video/*" multiple style="display: none;">
+    
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
       <span>+ Download video</span>
     </button>
+    
+    <div class="user-profile" id="userProfile">
+      <div class="user-info" onclick="document.getElementById('avatarInput').click()" title="Change avatar">
+        <img id="headerAvatar" class="user-avatar" src="" alt="Avatar">
+        <span id="headerUsername" class="user-name"></span>
+      </div>
+      <button class="upload-btn" id="logoutBtn" style="padding: 6px 12px;">Log out</button>
+    </div>
   </header>
 
   <div class="main-layout">
@@ -220,83 +392,264 @@
     </div>
 
     <div class="sidebar">
-      <div class="sidebar-header">video</div>
+      <div class="sidebar-header">Your videos</div>
       <div id="playlist"></div>
     </div>
   </div>
 
   <script>
+    // ===== GLOBAL STATE =====
+    let db;
+    let videos = [];
+    let activeId = null;
+    let currentUser = null;
+    let currentUserAvatar = '';
+
+    const USERS_KEY = 'gitube_users';
+    const SESSION_KEY = 'gitube_session_user'; // Используем localStorage для сессии
+    const MIN_PASSWORD = 6;
+
     const fileInput = document.getElementById('fileInput');
+    const avatarInput = document.getElementById('avatarInput');
     const playerWrapper = document.getElementById('playerWrapper');
     const mainPlayer = document.getElementById('mainPlayer');
     const mainTitle = document.getElementById('mainTitle');
     const playlistEl = document.getElementById('playlist');
+    
+    const overlay = document.getElementById('authOverlay');
+    const form = document.getElementById('authForm');
+    const usernameEl = document.getElementById('authUsername');
+    const passwordEl = document.getElementById('authPassword');
+    const errorEl = document.getElementById('authError');
+    const submitBtn = document.getElementById('authSubmit');
+    const tabs = document.querySelectorAll('.auth-tabs button');
+    
+    const userProfile = document.getElementById('userProfile');
+    const headerAvatar = document.getElementById('headerAvatar');
+    const headerUsername = document.getElementById('headerUsername');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-    let db;
-    let videos = [];
-    let activeId = null;
+    let mode = 'login';
+    const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaaaaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
-    mainPlayer.addEventListener('ended', function() {
-      mainPlayer.controls = false;
-    });
+    // ===== 1. DB INITIALIZATION =====
+    // Убедитесь, что имя БД и версия совпадают
+    const dbRequest = indexedDB.open("LocalTubeDB", 2);
 
-    mainPlayer.addEventListener('mouseenter', function() {
-      mainPlayer.controls = true;
-    });
-
-    mainPlayer.addEventListener('play', function() {
-      mainPlayer.controls = true;
-    });
-
-    const request = indexedDB.open("LocalTubeDB", 1);
-
-    request.onupgradeneeded = function(e) {
+    dbRequest.onupgradeneeded = function(e) {
       db = e.target.result;
       if (!db.objectStoreNames.contains("videos")) {
         db.createObjectStore("videos", { keyPath: "id", autoIncrement: true });
       }
     };
 
-    request.onsuccess = function(e) {
+    dbRequest.onsuccess = function(e) {
       db = e.target.result;
-      loadVideosFromDB();
+      initApp(); // Запускаем приложение только после загрузки БД
     };
 
-    function loadVideosFromDB() {
+    dbRequest.onerror = function(e) {
+      console.error("DB Error:", e.target.error);
+      alert("Ошибка при открытии базы данных. Попробуйте очистить кеш браузера.");
+    };
+
+    // ===== 2. APP INIT =====
+    function initApp() {
+      const savedUser = localStorage.getItem(SESSION_KEY);
+      const users = getUsers();
+      
+      if (savedUser && users[savedUser]) {
+        // Если сессия есть, входим
+        executeLogin(savedUser, users[savedUser].avatar);
+      } else {
+        // Иначе показываем экран входа
+        showAuthScreen();
+      }
+    }
+
+    // ===== 3. AUTH LOGIC =====
+    function getUsers() {
+      try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; }
+      catch (e) { return {}; }
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    }
+
+    async function hashPassword(pw) {
+      try {
+        if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+          const data = new TextEncoder().encode(pw);
+          const buf = await crypto.subtle.digest('SHA-256', data);
+          return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+      } catch (e) {}
+      let h = 0;
+      for (let i = 0; i < pw.length; i++) h = (h * 31 + pw.charCodeAt(i)) | 0;
+      return 'fb_' + Math.abs(h).toString(16);
+    }
+
+    function executeLogin(username, avatar) {
+      currentUser = username;
+      currentUserAvatar = avatar || defaultAvatar;
+      
+      localStorage.setItem(SESSION_KEY, username); // Сохраняем сессию
+      
+      overlay.classList.add('hidden');
+      userProfile.style.display = 'flex';
+      headerUsername.textContent = currentUser;
+      headerAvatar.src = currentUserAvatar;
+      
+      loadVideos(); // Загружаем видео для этого пользователя
+    }
+
+    function showAuthScreen() {
+      currentUser = null;
+      overlay.classList.remove('hidden');
+      userProfile.style.display = 'none';
+      playlistEl.innerHTML = '';
+      playerWrapper.style.display = 'none';
+      mainPlayer.removeAttribute('src');
+      
+      form.reset();
+      errorEl.textContent = '';
+      mode = 'login';
+      tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === 'login'));
+      submitBtn.textContent = 'Log in';
+    }
+
+    // Обработка формы
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.textContent = '';
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value;
+
+      if (!username) return errorEl.textContent = 'Enter username';
+      if (password.length < MIN_PASSWORD) return errorEl.textContent = `Password must be at least ${MIN_PASSWORD} characters`;
+
+      const users = getUsers();
+      const hash = await hashPassword(password);
+
+      if (mode === 'register') {
+        if (users[username]) return errorEl.textContent = 'User already exists';
+        users[username] = { passwordHash: hash, avatar: defaultAvatar, createdAt: Date.now() };
+        saveUsers(users);
+        executeLogin(username, defaultAvatar);
+      } else {
+        const user = users[username];
+        if (!user || user.passwordHash !== hash) return errorEl.textContent = 'Invalid username or password';
+        executeLogin(username, user.avatar);
+      }
+    });
+
+    // Переключение вкладок
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        mode = btn.dataset.tab;
+        tabs.forEach(b => b.classList.toggle('active', b === btn));
+        submitBtn.textContent = mode === 'login' ? 'Log in' : 'Sign up';
+        errorEl.textContent = '';
+      });
+    });
+
+    // Выход
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem(SESSION_KEY); // Удаляем сессию
+      showAuthScreen();
+    });
+
+    // Смена аватарки
+    avatarInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file || !currentUser) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64Img = evt.target.result;
+        const users = getUsers();
+        if (users[currentUser]) {
+          users[currentUser].avatar = base64Img;
+          saveUsers(users);
+          
+          currentUserAvatar = base64Img;
+          headerAvatar.src = currentUserAvatar;
+          renderPlaylist(); // Обновляем аватарки в списке
+        }
+      };
+      reader.readAsDataURL(file);
+      avatarInput.value = '';
+    });
+
+    // ===== 4. VIDEO DB LOGIC =====
+    function loadVideos() {
+      if (!currentUser || !db) return;
+      
       const tx = db.transaction("videos", "readonly");
       const store = tx.objectStore("videos");
       const req = store.getAll();
 
       req.onsuccess = function() {
+        // Очищаем старые URL
         videos.forEach(v => URL.revokeObjectURL(v.url));
 
-        videos = req.result.map(item => ({
+        // Фильтруем: берем видео текущего юзера.
+        // Если есть видео без автора (старая версия), привязываем к текущему.
+        let userVideos = req.result.filter(item => item.uploader === currentUser || !item.uploader);
+        
+        userVideos.forEach(vid => {
+          if (!vid.uploader) {
+            vid.uploader = currentUser;
+            const updateTx = db.transaction("videos", "readwrite");
+            updateTx.objectStore("videos").put(vid);
+          }
+        });
+
+        videos = userVideos.map(item => ({
           id: item.id,
           title: item.title,
+          uploader: item.uploader,
           url: URL.createObjectURL(item.file)
         }));
-
-        if (activeId !== null && !videos.some(v => v.id === activeId)) {
-          hidePlayer();
-        }
 
         renderPlaylist();
       };
     }
 
-    function hidePlayer() {
-      activeId = null;
-      mainPlayer.pause();
-      mainPlayer.removeAttribute('src');
-      mainPlayer.load();
-      playerWrapper.style.display = 'none';
-    }
+    // Загрузка нового видео
+    fileInput.addEventListener('change', function(event) {
+      const files = Array.from(event.target.files);
+      if (files.length === 0 || !db || !currentUser) return;
+
+      const tx = db.transaction("videos", "readwrite");
+      const store = tx.objectStore("videos");
+
+      files.forEach(file => {
+        const cleanName = file.name.replace(/\.[^/.]+$/, "");
+        store.add({
+          title: cleanName,
+          file: file,
+          uploader: currentUser // Привязка к текущему пользователю
+        });
+      });
+
+      tx.oncomplete = function() {
+        fileInput.value = "";
+        loadVideos(); // Перезагружаем список
+      };
+    });
+
+    // ===== 5. RENDER & PLAYER =====
+    mainPlayer.addEventListener('ended', () => mainPlayer.controls = false);
+    mainPlayer.addEventListener('mouseenter', () => mainPlayer.controls = true);
+    mainPlayer.addEventListener('play', () => mainPlayer.controls = true);
 
     function renderPlaylist() {
       playlistEl.innerHTML = "";
 
       if (videos.length === 0) {
-        playlistEl.innerHTML = '<div class="empty-list">Blah blah bla</div>';
+        playlistEl.innerHTML = '<div class="empty-list">No videos yet. Upload one!</div>';
         return;
       }
 
@@ -311,10 +664,13 @@
           </div>
           <div class="item-info">
             <div class="item-title">${vid.title}</div>
+            <div class="item-meta">
+              <img class="meta-avatar" src="${currentUserAvatar}" alt="">
+              <span>${vid.uploader}</span>
+            </div>
           </div>
           <button class="delete-btn" onclick="deleteVideo(event, ${vid.id})">✕</button>
         `;
-
         playlistEl.appendChild(item);
       });
     }
@@ -325,7 +681,6 @@
 
       activeId = id;
       playerWrapper.style.display = 'block';
-
       mainPlayer.controls = true;
       mainPlayer.src = selected.url;
       mainPlayer.play().catch(() => {});
@@ -333,39 +688,20 @@
       renderPlaylist();
     }
 
-    function deleteVideo(event, id) {
+    window.deleteVideo = function(event, id) {
       event.stopPropagation();
       const tx = db.transaction("videos", "readwrite");
-      const store = tx.objectStore("videos");
-      store.delete(id);
-
+      tx.objectStore("videos").delete(id);
       tx.oncomplete = function() {
-        loadVideosFromDB();
+        if (activeId === id) {
+          activeId = null;
+          playerWrapper.style.display = 'none';
+          mainPlayer.pause();
+          mainPlayer.removeAttribute('src');
+        }
+        loadVideos();
       };
     }
-
-    fileInput.addEventListener('change', function(event) {
-      const files = Array.from(event.target.files);
-      if (files.length === 0 || !db) return;
-
-      const tx = db.transaction("videos", "readwrite");
-      const store = tx.objectStore("videos");
-
-      files.forEach(file => {
-        const cleanName = file.name.replace(/\.[^/.]+$/, "");
-
-        store.add({
-          title: cleanName,
-          file: file
-        });
-      });
-
-      tx.oncomplete = function() {
-        fileInput.value = "";
-        loadVideosFromDB();
-      };
-    });
   </script>
-
 </body>
 </html>
