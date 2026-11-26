@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -141,19 +141,6 @@
       outline: none;
     }
 
-    .loading-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
-      z-index: 5;
-    }
-
     .video-details {
       margin-top: 16px;
       display: flex;
@@ -168,8 +155,8 @@
     }
 
     .main-uploader-avatar {
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background-color: #3f3f3f;
       object-fit: cover;
@@ -442,7 +429,6 @@
       
       <div id="playerWrapper" style="display: none;">
         <div class="video-container">
-          <div class="loading-overlay" id="loadingOverlay">Загрузка видео...</div>
           <video id="mainPlayer" controls controlsList="nodownload noplaybackrate"></video>
         </div>
         <div class="video-details">
@@ -462,14 +448,15 @@
   </div>
 
   <script>
+    // Put your new Firebase config here
     const firebaseConfig = {
-      apiKey: "ТВОЙ_API_KEY",
-      authDomain: "testtubefiles.firebaseapp.com",
-      databaseURL: "https://testtubefiles-default-rtdb.firebaseio.com/",
-      projectId: "testtubefiles",
-      storageBucket: "testtubefiles.appspot.com",
-      messagingSenderId: "ТВОЙ_SENDER_ID",
-      appId: "ТВОЙ_APP_ID"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "freemb-ef27b.firebaseapp.com",
+      databaseURL: "https://freemb-ef27b-default-rtdb.firebaseio.com/",
+      projectId: "freemb-ef27b",
+      storageBucket: "freemb-ef27b.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -484,11 +471,9 @@
     const fileInput = document.getElementById('fileInput');
     const avatarInput = document.getElementById('avatarInput');
     const playerWrapper = document.getElementById('playerWrapper');
-    const playerSection = document.getElementById('playerSection');
     const sidebar = document.getElementById('sidebar');
     const mobileBackBtn = document.getElementById('mobileBackBtn');
     const mainPlayer = document.getElementById('mainPlayer');
-    const loadingOverlay = document.getElementById('loadingOverlay');
     const mainTitle = document.getElementById('mainTitle');
     const mainUploaderAvatar = document.getElementById('mainUploaderAvatar');
     const mainUploaderName = document.getElementById('mainUploaderName');
@@ -609,7 +594,7 @@
           }
         }
       }).catch(err => {
-        errorEl.textContent = 'Ошибка Firebase: ' + err.message;
+        errorEl.textContent = 'Firebase Error: ' + err.message;
       });
     });
 
@@ -695,7 +680,7 @@
 
       files.forEach(file => {
         if (file.size > 9.5 * 1024 * 1024) {
-          alert(`Видео "${file.name}" слишком большое (${(file.size/1024/1024).toFixed(1)} МБ). Firebase не пропустит файлы больше 10 МБ.`);
+          alert(`Video "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)} MB). Firebase cannot store files larger than 10 MB.`);
           return;
         }
 
@@ -716,7 +701,7 @@
               base64: base64Data
             });
           }).catch(err => {
-            alert("Ошибка при загрузке в базу: " + err.message);
+            alert("Upload error: " + err.message);
           });
         };
         reader.readAsDataURL(file);
@@ -783,23 +768,18 @@
       
       mainPlayer.src = "";
       mainPlayer.pause();
-      
-      // Показываем загрузку
-      loadingOverlay.style.display = 'flex';
 
       db.ref('videos_data/' + id).once('value').then(snapshot => {
-        loadingOverlay.style.display = 'none';
         const data = snapshot.val();
         
         if (data && data.base64) {
           mainPlayer.src = data.base64;
           mainPlayer.play().catch(() => {});
         } else {
-          alert("Видео не найдено или у вас нет прав на его просмотр. Проверьте правила Firebase.");
+          alert("Video not found or you don't have permission to view it. Check Firebase Rules.");
         }
       }).catch(err => {
-        loadingOverlay.style.display = 'none';
-        alert("Ошибка загрузки: " + err.message);
+        alert("Load error: " + err.message);
       });
 
       renderPlaylist();
@@ -820,7 +800,7 @@
       
       if (!vid || vid.uploader !== currentUser) return;
 
-      if (confirm("Удалить это видео навсегда?")) {
+      if (confirm("Delete this video permanently?")) {
         db.ref('videos_meta/' + id).remove();
         db.ref('videos_data/' + id).remove();
         
