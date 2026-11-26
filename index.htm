@@ -448,15 +448,14 @@
   </div>
 
   <script>
-    // Put your new Firebase config here
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "freemb-ef27b.firebaseapp.com",
-      databaseURL: "https://freemb-ef27b-default-rtdb.firebaseio.com/",
-      projectId: "freemb-ef27b",
-      storageBucket: "freemb-ef27b.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "testtubefiles.firebaseapp.com",
+      databaseURL: "https://testtubefiles-default-rtdb.firebaseio.com/",
+      projectId: "testtubefiles",
+      storageBucket: "testtubefiles.appspot.com",
+      messagingSenderId: "ТВОЙ_SENDER_ID",
+      appId: "ТВОЙ_APP_ID"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -471,6 +470,7 @@
     const fileInput = document.getElementById('fileInput');
     const avatarInput = document.getElementById('avatarInput');
     const playerWrapper = document.getElementById('playerWrapper');
+    const playerSection = document.getElementById('playerSection');
     const sidebar = document.getElementById('sidebar');
     const mobileBackBtn = document.getElementById('mobileBackBtn');
     const mainPlayer = document.getElementById('mainPlayer');
@@ -571,6 +571,12 @@
       const password = passwordEl.value;
 
       if (!username) return errorEl.textContent = 'Enter username';
+      
+      const usernameRegex = /^[a-zA-Z0-9_]{3,}$/;
+      if (!usernameRegex.test(username)) {
+        return errorEl.textContent = 'Username must be at least 3 characters and contain only English letters, numbers, and underscores.';
+      }
+
       if (password.length < MIN_PASSWORD) return errorEl.textContent = `Password must be at least ${MIN_PASSWORD} characters`;
 
       const hash = await hashPassword(password);
@@ -594,7 +600,7 @@
           }
         }
       }).catch(err => {
-        errorEl.textContent = 'Firebase Error: ' + err.message;
+        errorEl.textContent = 'Firebase error: ' + err.message;
       });
     });
 
@@ -701,7 +707,7 @@
               base64: base64Data
             });
           }).catch(err => {
-            alert("Upload error: " + err.message);
+            alert("Database upload error: " + err.message);
           });
         };
         reader.readAsDataURL(file);
