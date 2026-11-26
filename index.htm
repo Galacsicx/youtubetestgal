@@ -815,7 +815,7 @@
       
       if (!vid || vid.uploader !== currentUser) return;
 
-      if (confirm("Delete this video permanently?")) {
+      if (confirm("Delete video?")) {
         db.ref('videos_meta/' + id).remove();
         db.ref('videos_data/' + id).remove();
         
