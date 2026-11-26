@@ -410,10 +410,6 @@
     <input type="file" id="avatarInput" accept="image/*" style="display: none;">
     <input type="file" id="fileInput" accept="video/*" multiple style="display: none;">
     
-    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-      <span>Download video</span>
-    </button>
-    
     <div class="user-profile" id="userProfile">
       <div class="user-info" onclick="document.getElementById('avatarInput').click()" title="Change avatar">
         <img id="headerAvatar" class="user-avatar" src="" alt="Avatar">
@@ -421,6 +417,10 @@
       </div>
       <button class="upload-btn" id="logoutBtn" style="padding: 6px 12px;">Log out</button>
     </div>
+
+    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+      <span>Download video</span>
+    </button>
   </header>
 
   <div class="main-layout">
