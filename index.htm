@@ -5,6 +5,11 @@
   <title>GI.tube</title>
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
+  
+  <!-- Подключаем Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -112,10 +117,6 @@
       width: 100%;
       height: 100%;
       outline: none;
-    }
-
-    video::-webkit-media-controls-panel {
-      background-image: none !important;
     }
 
     .video-details {
@@ -373,10 +374,8 @@
         <button type="button" data-tab="register">Sign up</button>
       </div>
       <form id="authForm" autocomplete="on">
-        <input type="text" id="authUsername" placeholder="Username"
-               autocomplete="username" required>
-        <input type="password" id="authPassword" placeholder="Password (at least 6 characters)"
-               autocomplete="current-password" required minlength="6">
+        <input type="text" id="authUsername" placeholder="Username" autocomplete="username" required>
+        <input type="password" id="authPassword" placeholder="Password (at least 6 characters)" autocomplete="current-password" required minlength="6">
         <div class="auth-error" id="authError"></div>
         <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
       </form>
@@ -423,14 +422,26 @@
   </div>
 
   <script>
-    let db;
+    // ===== НАСТРОЙКИ FIREBASE =====
+    // Замени эти данные на свои из настроек проекта Firebase (шестеренка -> Project settings)
+    const firebaseConfig = {
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "testtubefiles.firebaseapp.com",
+      databaseURL: "https://testtubefiles-default-rtdb.firebaseio.com/",
+      projectId: "testtubefiles",
+      storageBucket: "testtubefiles.appspot.com",
+      messagingSenderId: "ТВОЙ_SENDER_ID",
+      appId: "ТВОЙ_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
     let videos = [];
     let activeId = null;
     let currentUser = null;
     let currentUserAvatar = '';
-
-    const USERS_KEY = 'gitube_users';
-    const SESSION_KEY = 'gitube_session_user';
     const MIN_PASSWORD = 6;
 
     const fileInput = document.getElementById('fileInput');
@@ -458,46 +469,20 @@
     let mode = 'login';
     const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaaaaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
-    const dbRequest = indexedDB.open("LocalTubeDB", 4);
-
-    dbRequest.onupgradeneeded = function(e) {
-      db = e.target.result;
-      if (!db.objectStoreNames.contains("videos")) {
-        db.createObjectStore("videos", { keyPath: "id", autoIncrement: true });
-      }
-    };
-
-    dbRequest.onsuccess = function(e) {
-      db = e.target.result;
-      initApp();
-    };
-
+    // ===== ИНИЦИАЛИЗАЦИЯ =====
     function initApp() {
-      let savedUser = null;
-      const cookieRow = document.cookie.split('; ').find(r => r.startsWith('gitube_user='));
-      
-      if (cookieRow) {
-        savedUser = decodeURIComponent(cookieRow.split('=')[1]);
-      } else {
-        savedUser = localStorage.getItem(SESSION_KEY);
-      }
-
-      const users = getUsers();
-      
-      if (savedUser && users[savedUser]) {
-        executeLogin(savedUser, users[savedUser].avatar);
+      const savedUser = localStorage.getItem('gitube_session_user');
+      if (savedUser) {
+        db.ref('users/' + savedUser).once('value').then(snapshot => {
+          if (snapshot.exists()) {
+            executeLogin(savedUser, snapshot.val().avatar);
+          } else {
+            showAuthScreen();
+          }
+        });
       } else {
         showAuthScreen();
       }
-    }
-
-    function getUsers() {
-      try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; }
-      catch (e) { return {}; }
-    }
-
-    function saveUsers(users) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
     }
 
     async function hashPassword(pw) {
@@ -517,8 +502,7 @@
       currentUser = username;
       currentUserAvatar = avatar || defaultAvatar;
       
-      localStorage.setItem(SESSION_KEY, username);
-      document.cookie = `gitube_user=${encodeURIComponent(username)}; path=/; max-age=${30*24*60*60}; SameSite=Lax`;
+      localStorage.setItem('gitube_session_user', username);
       
       overlay.classList.add('hidden');
       userProfile.style.display = 'flex';
@@ -543,6 +527,7 @@
       submitBtn.textContent = 'Log in';
     }
 
+    // ===== АВТОРИЗАЦИЯ =====
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorEl.textContent = '';
@@ -552,19 +537,29 @@
       if (!username) return errorEl.textContent = 'Enter username';
       if (password.length < MIN_PASSWORD) return errorEl.textContent = `Password must be at least ${MIN_PASSWORD} characters`;
 
-      const users = getUsers();
       const hash = await hashPassword(password);
+      const userRef = db.ref('users/' + username);
 
-      if (mode === 'register') {
-        if (users[username]) return errorEl.textContent = 'User already exists';
-        users[username] = { passwordHash: hash, avatar: defaultAvatar, createdAt: Date.now() };
-        saveUsers(users);
-        executeLogin(username, defaultAvatar);
-      } else {
-        const user = users[username];
-        if (!user || user.passwordHash !== hash) return errorEl.textContent = 'Invalid username or password';
-        executeLogin(username, user.avatar);
-      }
+      userRef.once('value').then(snapshot => {
+        if (mode === 'register') {
+          if (snapshot.exists()) {
+            errorEl.textContent = 'User already exists';
+          } else {
+            userRef.set({ passwordHash: hash, avatar: defaultAvatar, createdAt: Date.now() }).then(() => {
+              executeLogin(username, defaultAvatar);
+            });
+          }
+        } else {
+          const user = snapshot.val();
+          if (!user || user.passwordHash !== hash) {
+            errorEl.textContent = 'Invalid username or password';
+          } else {
+            executeLogin(username, user.avatar);
+          }
+        }
+      }).catch(err => {
+        errorEl.textContent = 'Ошибка Firebase: ' + err.message;
+      });
     });
 
     tabs.forEach(btn => {
@@ -577,8 +572,7 @@
     });
 
     logoutBtn.addEventListener('click', () => {
-      localStorage.removeItem(SESSION_KEY);
-      document.cookie = 'gitube_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      localStorage.removeItem('gitube_session_user');
       showAuthScreen();
     });
 
@@ -589,76 +583,104 @@
       const reader = new FileReader();
       reader.onload = function(evt) {
         const base64Img = evt.target.result;
-        const users = getUsers();
-        if (users[currentUser]) {
-          users[currentUser].avatar = base64Img;
-          saveUsers(users);
-          
+        db.ref('users/' + currentUser + '/avatar').set(base64Img).then(() => {
           currentUserAvatar = base64Img;
           headerAvatar.src = currentUserAvatar;
           loadVideos();
-        }
+        });
       };
       reader.readAsDataURL(file);
       avatarInput.value = '';
     });
 
+    // ===== ЗАГРУЗКА ВИДЕО С FIREBASE =====
     function loadVideos() {
-      if (!currentUser || !db) return;
+      if (!currentUser) return;
       
-      const tx = db.transaction("videos", "readonly");
-      const store = tx.objectStore("videos");
-      const req = store.getAll();
-
-      req.onsuccess = function() {
-        videos.forEach(v => URL.revokeObjectURL(v.url));
-        const users = getUsers();
-
-        videos = req.result.map(item => {
-          const authorName = item.uploader || 'Unknown';
-          const authorAvatar = (users[authorName] && users[authorName].avatar) 
-                               ? users[authorName].avatar 
-                               : defaultAvatar;
-                               
-          return {
-            id: item.id,
-            title: item.title,
-            uploader: authorName,
-            avatar: authorAvatar,
-            url: URL.createObjectURL(item.file)
-          };
-        });
-
-        renderPlaylist();
-      };
+      db.ref('videos_meta').on('value', snapshot => {
+        videos = [];
+        const data = snapshot.val();
+        
+        if (data) {
+          db.ref('users').once('value').then(usersSnap => {
+            const users = usersSnap.val() || {};
+            
+            Object.keys(data).forEach(key => {
+              const item = data[key];
+              const authorName = item.uploader || 'Unknown';
+              const authorAvatar = (users[authorName] && users[authorName].avatar) ? users[authorName].avatar : defaultAvatar;
+              
+              videos.push({
+                id: key,
+                title: item.title,
+                uploader: authorName,
+                avatar: authorAvatar,
+                timestamp: item.timestamp || 0
+              });
+            });
+            
+            videos.sort((a, b) => b.timestamp - a.timestamp);
+            renderPlaylist();
+            
+            if (activeId && videos.find(v => v.id === activeId)) {
+              const cur = videos.find(v => v.id === activeId);
+              mainUploaderAvatar.src = cur.avatar;
+              mainUploaderName.textContent = cur.uploader;
+              mainTitle.textContent = cur.title;
+            } else if (activeId) {
+              activeId = null;
+              playerWrapper.style.display = 'none';
+              mainPlayer.pause();
+            }
+          });
+        } else {
+          renderPlaylist();
+        }
+      });
     }
 
+    // ===== ОТПРАВКА НОВОГО ВИДЕО =====
     fileInput.addEventListener('change', function(event) {
       const files = Array.from(event.target.files);
-      if (files.length === 0 || !db || !currentUser) return;
-
-      const tx = db.transaction("videos", "readwrite");
-      const store = tx.objectStore("videos");
+      if (files.length === 0 || !currentUser) return;
 
       files.forEach(file => {
+        if (file.size > 9.5 * 1024 * 1024) {
+          alert(`Видео "${file.name}" слишком большое (${(file.size/1024/1024).toFixed(1)} МБ). Firebase не пропустит файлы больше 10 МБ.`);
+          return;
+        }
+
         const cleanName = file.name.replace(/\.[^/.]+$/, "");
-        store.add({
-          title: cleanName,
-          file: file,
-          uploader: currentUser
-        });
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          const base64Data = e.target.result;
+          const newVideoRef = db.ref('videos_meta').push();
+          const videoId = newVideoRef.key;
+
+          newVideoRef.set({
+            title: cleanName,
+            uploader: currentUser,
+            timestamp: Date.now()
+          }).then(() => {
+            return db.ref('videos_data/' + videoId).set({
+              base64: base64Data
+            });
+          }).catch(err => {
+            alert("Ошибка при загрузке в базу: " + err.message);
+          });
+        };
+        reader.readAsDataURL(file);
       });
 
-      tx.oncomplete = function() {
-        fileInput.value = "";
-        loadVideos();
-      };
+      fileInput.value = "";
     });
 
     mainPlayer.addEventListener('ended', () => mainPlayer.controls = false);
     mainPlayer.addEventListener('mouseenter', () => mainPlayer.controls = true);
     mainPlayer.addEventListener('play', () => mainPlayer.controls = true);
 
+    // ===== ОТРИСОВКА СПИСКА =====
     function renderPlaylist() {
       playlistEl.innerHTML = "";
 
@@ -673,12 +695,12 @@
         item.onclick = () => playVideo(vid.id);
 
         const deleteBtnHTML = vid.uploader === currentUser 
-          ? `<button class="delete-btn" onclick="deleteVideo(event, ${vid.id})">✕</button>` 
+          ? `<button class="delete-btn" onclick="deleteVideo(event, '${vid.id}')">✕</button>` 
           : '';
 
         item.innerHTML = `
           <div class="thumb-box">
-            <video src="${vid.url}#t=1" preload="metadata" muted></video>
+            <div style="color: #717171; font-size: 24px;">▶</div>
           </div>
           <div class="item-info">
             <div class="item-title">${vid.title}</div>
@@ -693,6 +715,7 @@
       });
     }
 
+    // ===== ВОСПРОИЗВЕДЕНИЕ =====
     function playVideo(id) {
       const selected = videos.find(v => v.id === id);
       if (!selected) return;
@@ -700,34 +723,51 @@
       activeId = id;
       playerWrapper.style.display = 'block';
       mainPlayer.controls = true;
-      mainPlayer.src = selected.url;
-      mainPlayer.play().catch(() => {});
       
       mainUploaderAvatar.src = selected.avatar;
       mainUploaderName.textContent = selected.uploader;
       mainTitle.textContent = selected.title;
       
+      mainPlayer.src = "";
+      mainPlayer.pause();
+
+      db.ref('videos_data/' + id).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (data && data.base64) {
+          fetch(data.base64)
+            .then(res => res.blob())
+            .then(blob => {
+              const url = URL.createObjectURL(blob);
+              mainPlayer.src = url;
+              mainPlayer.play().catch(() => {});
+            });
+        }
+      });
+
       renderPlaylist();
     }
 
+    // ===== УДАЛЕНИЕ =====
     window.deleteVideo = function(event, id) {
       event.stopPropagation();
       const vid = videos.find(v => v.id === id);
       
       if (!vid || vid.uploader !== currentUser) return;
 
-      const tx = db.transaction("videos", "readwrite");
-      tx.objectStore("videos").delete(id);
-      tx.oncomplete = function() {
+      if (confirm("Удалить это видео навсегда?")) {
+        db.ref('videos_meta/' + id).remove();
+        db.ref('videos_data/' + id).remove();
+        
         if (activeId === id) {
           activeId = null;
           playerWrapper.style.display = 'none';
           mainPlayer.pause();
           mainPlayer.removeAttribute('src');
         }
-        loadVideos();
-      };
-    }
+      }
+    };
+
+    initApp();
   </script>
 </body>
 </html>
