@@ -398,7 +398,7 @@
         <button type="button" data-tab="register">Sign up</button>
       </div>
       <form id="authForm" autocomplete="on">
-        <input type="text" id="authUsername" placeholder="Username" autocomplete="username" required>
+        <input type="text" id="authUsername" placeholder="Username (English only, min 3)" autocomplete="username" required>
         <input type="password" id="authPassword" placeholder="Password (at least 6 characters)" autocomplete="current-password" required minlength="6">
         <div class="auth-error" id="authError"></div>
         <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
@@ -466,6 +466,7 @@
     let currentUser = null;
     let currentUserAvatar = '';
     const MIN_PASSWORD = 6;
+    const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,}$/;
 
     const fileInput = document.getElementById('fileInput');
     const avatarInput = document.getElementById('avatarInput');
@@ -507,9 +508,20 @@
       );
     }
 
+    usernameEl.addEventListener('input', function() {
+      this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '');
+    });
+
     function initApp() {
       const savedUser = localStorage.getItem('gitube_session_user');
+      
       if (savedUser) {
+        if (!USERNAME_REGEX.test(savedUser)) {
+          localStorage.removeItem('gitube_session_user');
+          showAuthScreen();
+          return;
+        }
+        
         db.ref('users/' + savedUser).once('value').then(snapshot => {
           if (snapshot.exists()) {
             executeLogin(savedUser, snapshot.val().avatar);
@@ -571,12 +583,9 @@
       const password = passwordEl.value;
 
       if (!username) return errorEl.textContent = 'Enter username';
-      
-      const usernameRegex = /^[a-zA-Z0-9_]{3,}$/;
-      if (!usernameRegex.test(username)) {
+      if (!USERNAME_REGEX.test(username)) {
         return errorEl.textContent = 'Username must be at least 3 characters and contain only English letters, numbers, and underscores.';
       }
-
       if (password.length < MIN_PASSWORD) return errorEl.textContent = `Password must be at least ${MIN_PASSWORD} characters`;
 
       const hash = await hashPassword(password);
