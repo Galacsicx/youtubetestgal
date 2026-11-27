@@ -845,7 +845,7 @@
 
     window.editVideo = function(event, id, currentTitle) {
       event.stopPropagation();
-      const newTitle = prompt("Enter new video title:", currentTitle);
+      const newTitle = prompt("Video name", currentTitle);
       if (newTitle !== null && newTitle.trim() !== "" && newTitle !== currentTitle) {
         db.ref('videos_meta/' + id + '/title').set(newTitle.trim()).then(() => {
           if (activeId === id) {
