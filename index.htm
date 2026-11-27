@@ -1,6 +1,4 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
+﻿<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GI.tube</title>
@@ -695,7 +693,7 @@
 
       files.forEach(file => {
         if (file.size > 9.5 * 1024 * 1024) {
-          alert(`Video "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)} MB). Firebase cannot store files larger than 10 MB.`);
+          alert(`Video "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)} MB). limite 10mb`);
           return;
         }
 
@@ -791,7 +789,7 @@
           mainPlayer.src = data.base64;
           mainPlayer.play().catch(() => {});
         } else {
-          alert("Video not found or you don't have permission to view it. Check Firebase Rules.");
+          alert("Error");
         }
       }).catch(err => {
         alert("Load error: " + err.message);
