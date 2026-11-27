@@ -181,6 +181,142 @@
       margin-top: -4px;
     }
 
+    .comments-section {
+      margin-top: 24px;
+      border-top: 1px solid #272727;
+      padding-top: 16px;
+    }
+
+    .comments-header {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .comment-form-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .comment-user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #3f3f3f;
+      object-fit: cover;
+    }
+
+    .comment-input-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .comment-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #3f3f3f;
+      color: #ffffff;
+      padding: 8px 0;
+      outline: none;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .comment-input:focus {
+      border-bottom-color: #ffffff;
+    }
+
+    .comment-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .comment-btn {
+      background: transparent;
+      color: #aaaaaa;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 18px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .comment-btn:hover {
+      background-color: #272727;
+      color: #ffffff;
+    }
+
+    .comment-btn.submit {
+      background: #3ea6ff;
+      color: #0f0f0f;
+    }
+
+    .comment-btn.submit:disabled {
+      background: #272727;
+      color: #717171;
+      cursor: default;
+    }
+
+    .comment-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .comment-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .comment-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .comment-author {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f1f1;
+    }
+
+    .comment-time {
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+
+    .comment-text {
+      font-size: 14px;
+      color: #ffffff;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .comment-delete-btn {
+      background: transparent;
+      border: none;
+      color: #717171;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      align-self: flex-start;
+      transition: color 0.2s;
+    }
+
+    .comment-delete-btn:hover {
+      color: #ff4e4e;
+    }
+
     .sidebar {
       width: 380px;
       flex-shrink: 0;
@@ -457,6 +593,23 @@
           <div class="current-title" id="mainTitle"></div>
           <div class="main-views" id="mainViews">views - 0</div>
         </div>
+
+        <div class="comments-section" id="commentsSection">
+          <div class="comments-header" id="commentsCount">Comments</div>
+          
+          <div class="comment-form-container">
+            <img id="commentUserAvatar" class="comment-user-avatar" src="" alt="Avatar">
+            <div class="comment-input-wrapper">
+              <input type="text" id="commentInput" class="comment-input" placeholder="Add a comment...">
+              <div class="comment-actions">
+                <button class="comment-btn" id="cancelCommentBtn">Cancel</button>
+                <button class="comment-btn submit" id="submitCommentBtn" disabled>Comment</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="commentsList"></div>
+        </div>
       </div>
     </div>
 
@@ -484,6 +637,7 @@
     let activeId = null;
     let currentUser = null;
     let currentUserAvatar = '';
+    let commentsListener = null;
     const MIN_PASSWORD = 6;
     const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,}$/;
 
@@ -499,6 +653,14 @@
     const mainUploaderAvatar = document.getElementById('mainUploaderAvatar');
     const mainUploaderName = document.getElementById('mainUploaderName');
     const playlistEl = document.getElementById('playlist');
+    
+    const commentsSection = document.getElementById('commentsSection');
+    const commentsCount = document.getElementById('commentsCount');
+    const commentsList = document.getElementById('commentsList');
+    const commentUserAvatar = document.getElementById('commentUserAvatar');
+    const commentInput = document.getElementById('commentInput');
+    const cancelCommentBtn = document.getElementById('cancelCommentBtn');
+    const submitCommentBtn = document.getElementById('submitCommentBtn');
     
     const overlay = document.getElementById('authOverlay');
     const form = document.getElementById('authForm');
@@ -530,6 +692,10 @@
 
     usernameEl.addEventListener('input', function() {
       this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '');
+    });
+
+    commentInput.addEventListener('input', function() {
+      submitCommentBtn.disabled = this.value.trim() === '';
     });
 
     function initApp() {
@@ -577,6 +743,7 @@
       userProfile.style.display = 'flex';
       headerUsername.textContent = currentUser;
       headerAvatar.src = currentUserAvatar;
+      commentUserAvatar.src = currentUserAvatar;
       
       loadVideos();
     }
@@ -657,6 +824,7 @@
         db.ref('users/' + currentUser + '/avatar').set(base64Img).then(() => {
           currentUserAvatar = base64Img;
           headerAvatar.src = currentUserAvatar;
+          commentUserAvatar.src = currentUserAvatar;
           loadVideos();
         });
       };
@@ -770,7 +938,7 @@
             actionBtnsHTML = `
                 <div class="action-btns">
                     <button class="edit-btn" onclick="editVideo(event, '${vid.id}', '${escapeHTML(vid.title)}')">✎</button>
-                    <button class="delete-btn" onclick="deleteVideo(event, '${vid.id}')" title="Delete">✕</button>
+                    <button class="delete-btn" onclick="deleteVideo(event, '${vid.id}')">✕</button>
                 </div>
             `;
         }
@@ -801,6 +969,7 @@
 
       activeId = id;
       playerWrapper.style.display = 'block';
+      commentsSection.style.display = 'block';
       mainPlayer.controls = true;
       
       if (window.innerWidth <= 950) {
@@ -816,6 +985,8 @@
       
       mainPlayer.src = "";
       mainPlayer.pause();
+      commentInput.value = '';
+      submitCommentBtn.disabled = true;
 
       const sessionKey = 'viewed_' + id;
       if (!sessionStorage.getItem(sessionKey)) {
@@ -840,8 +1011,96 @@
         alert("Load error: " + err.message);
       });
 
+      loadComments(id);
       renderPlaylist();
     }
+
+    function loadComments(videoId) {
+      if (commentsListener) {
+        commentsListener.off();
+      }
+      commentsList.innerHTML = '';
+      
+      commentsListener = db.ref('comments/' + videoId);
+      commentsListener.on('value', snapshot => {
+        commentsList.innerHTML = '';
+        const data = snapshot.val();
+        let count = 0;
+
+        if (data) {
+          const sortedComments = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+          })).sort((a, b) => b.timestamp - a.timestamp);
+
+          count = sortedComments.length;
+
+          sortedComments.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'comment-item';
+            
+            const deleteBtn = c.author === currentUser 
+              ? `<button class="comment-delete-btn" onclick="deleteComment(event, '${videoId}', '${c.id}')">✕</button>` 
+              : '';
+
+            const date = new Date(c.timestamp);
+            const timeString = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            div.innerHTML = `
+              <img class="comment-user-avatar" src="${c.avatar || defaultAvatar}" alt="">
+              <div class="comment-content">
+                <div class="comment-meta">
+                  <span class="comment-author">${escapeHTML(c.author)}</span>
+                  <span class="comment-time">${timeString}</span>
+                </div>
+                <div class="comment-text">${escapeHTML(c.text)}</div>
+              </div>
+              ${deleteBtn}
+            `;
+            commentsList.appendChild(div);
+          });
+        }
+        
+        commentsCount.textContent = `Comments (${count})`;
+      });
+    }
+
+    function submitComment() {
+      const text = commentInput.value.trim();
+      if (!text || !activeId || !currentUser) return;
+
+      db.ref('comments/' + activeId).push({
+        text: text,
+        author: currentUser,
+        avatar: currentUserAvatar,
+        timestamp: Date.now()
+      }).then(() => {
+        commentInput.value = '';
+        submitCommentBtn.disabled = true;
+      }).catch(err => {
+        alert("Error sending comment: " + err.message);
+      });
+    }
+
+    submitCommentBtn.addEventListener('click', submitComment);
+    
+    commentInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        submitComment();
+      }
+    });
+
+    cancelCommentBtn.addEventListener('click', function() {
+      commentInput.value = '';
+      submitCommentBtn.disabled = true;
+    });
+
+    window.deleteComment = function(event, videoId, commentId) {
+      event.stopPropagation();
+      if (confirm("Delete comment?")) {
+        db.ref(`comments/${videoId}/${commentId}`).remove();
+      }
+    };
 
     window.editVideo = function(event, id, currentTitle) {
       event.stopPropagation();
@@ -875,10 +1134,12 @@
       if (confirm("Delete video?")) {
         db.ref('videos_meta/' + id).remove();
         db.ref('videos_data/' + id).remove();
+        db.ref('comments/' + id).remove();
         
         if (activeId === id) {
           activeId = null;
           playerWrapper.style.display = 'none';
+          commentsSection.style.display = 'none';
           mainPlayer.pause();
           mainPlayer.removeAttribute('src');
           
