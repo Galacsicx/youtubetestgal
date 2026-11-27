@@ -620,7 +620,9 @@
   </div>
 
   <script>
-    const firebaseConfig = {
+    // ===== ВПИШИ СЮДА СВОИ API КЛЮЧИ ДЛЯ ВСЕХ 5 БАЗ =====
+    
+    const firebaseConfig1 = {
       apiKey: "ТВОЙ_API_KEY",
       authDomain: "testtubefiles.firebaseapp.com",
       databaseURL: "https://testtubefiles-default-rtdb.firebaseio.com/",
@@ -630,21 +632,78 @@
       appId: ""
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const firebaseConfig2 = {
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "freemb.firebaseapp.com",
+      databaseURL: "https://freemb-ef27b-default-rtdb.firebaseio.com",
+      projectId: "freemb",
+      storageBucket: "freemb.appspot.com",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    const firebaseConfig3 = {
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "freemb2.firebaseapp.com",
+      databaseURL: "https://freemb2-5153b-default-rtdb.firebaseio.com",
+      projectId: "freemb2",
+      storageBucket: "freemb2.appspot.com",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    const firebaseConfig4 = {
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "commentmb.firebaseapp.com",
+      databaseURL: "https://commentmb-default-rtdb.firebaseio.com",
+      projectId: "commentmb",
+      storageBucket: "commentmb.appspot.com",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    const firebaseConfig5 = {
+      apiKey: "ТВОЙ_API_KEY",
+      authDomain: "commentmb2.firebaseapp.com",
+      databaseURL: "https://commentmb2-default-rtdb.firebaseio.com",
+      projectId: "commentmb2",
+      storageBucket: "commentmb2.appspot.com",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    // Инициализация всех 5 приложений
+    const app1 = firebase.initializeApp(firebaseConfig1);
+    const app2 = firebase.initializeApp(firebaseConfig2, 'freemb');
+    const app3 = firebase.initializeApp(firebaseConfig3, 'freemb2');
+    const app4 = firebase.initializeApp(firebaseConfig4, 'commentmb');
+    const app5 = firebase.initializeApp(firebaseConfig5, 'commentmb2');
+
+    // Получаем доступ к базам данных
+    const db1 = app1.database(); // Основная (юзеры, мета, часть видео)
+    const db2 = app2.database(); // Видео часть 2
+    const db3 = app3.database(); // Видео часть 3
+    const cdb1 = app4.database(); // Комменты часть 1
+    const cdb2 = app5.database(); // Комменты часть 2
+
+    const videoDbs = [db1, db2, db3];
+    const CHUNK_SIZE = 8 * 1024 * 1024; // Размер куска видео (8 МБ)
 
     let videos = [];
     let activeId = null;
     let currentUser = null;
     let currentUserAvatar = '';
-    let commentsListener = null;
+    let commentsListener1 = null;
+    let commentsListener2 = null;
+    let currentComments1 = {};
+    let currentComments2 = {};
+    
     const MIN_PASSWORD = 6;
     const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,}$/;
 
     const fileInput = document.getElementById('fileInput');
     const avatarInput = document.getElementById('avatarInput');
     const playerWrapper = document.getElementById('playerWrapper');
-    const playerSection = document.getElementById('playerSection');
     const sidebar = document.getElementById('sidebar');
     const mobileBackBtn = document.getElementById('mobileBackBtn');
     const mainPlayer = document.getElementById('mainPlayer');
@@ -708,7 +767,7 @@
           return;
         }
         
-        db.ref('users/' + savedUser).once('value').then(snapshot => {
+        db1.ref('users/' + savedUser).once('value').then(snapshot => {
           if (snapshot.exists()) {
             executeLogin(savedUser, snapshot.val().avatar);
           } else {
@@ -776,7 +835,7 @@
       if (password.length < MIN_PASSWORD) return errorEl.textContent = `Password must be at least ${MIN_PASSWORD} characters`;
 
       const hash = await hashPassword(password);
-      const userRef = db.ref('users/' + username);
+      const userRef = db1.ref('users/' + username);
 
       userRef.once('value').then(snapshot => {
         if (mode === 'register') {
@@ -821,7 +880,7 @@
       const reader = new FileReader();
       reader.onload = function(evt) {
         const base64Img = evt.target.result;
-        db.ref('users/' + currentUser + '/avatar').set(base64Img).then(() => {
+        db1.ref('users/' + currentUser + '/avatar').set(base64Img).then(() => {
           currentUserAvatar = base64Img;
           headerAvatar.src = currentUserAvatar;
           commentUserAvatar.src = currentUserAvatar;
@@ -835,12 +894,12 @@
     function loadVideos() {
       if (!currentUser) return;
       
-      db.ref('videos_meta').on('value', snapshot => {
+      db1.ref('videos_meta').on('value', snapshot => {
         videos = [];
         const data = snapshot.val();
         
         if (data) {
-          db.ref('users').once('value').then(usersSnap => {
+          db1.ref('users').once('value').then(usersSnap => {
             const users = usersSnap.val() || {};
             
             Object.keys(data).forEach(key => {
@@ -884,28 +943,29 @@
       if (files.length === 0 || !currentUser) return;
 
       files.forEach(file => {
-        if (file.size > 9.5 * 1024 * 1024) {
-          alert(`Video "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)} MB). limite 10mb`);
-          return;
-        }
-
         const cleanName = file.name.replace(/\.[^/.]+$/, "");
         const reader = new FileReader();
         
         reader.onload = function(e) {
           const base64Data = e.target.result;
-          const newVideoRef = db.ref('videos_meta').push();
+          const newVideoRef = db1.ref('videos_meta').push();
           const videoId = newVideoRef.key;
+          const numChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
 
           newVideoRef.set({
             title: cleanName,
             uploader: currentUser,
             timestamp: Date.now(),
-            views: 0
+            views: 0,
+            chunks: numChunks
           }).then(() => {
-            return db.ref('videos_data/' + videoId).set({
-              base64: base64Data
-            });
+            const promises = [];
+            for (let i = 0; i < numChunks; i++) {
+              const chunk = base64Data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+              const targetDb = videoDbs[i % 3];
+              promises.push(targetDb.ref('videos_data/' + videoId + '/chunk' + i).set(chunk));
+            }
+            return Promise.all(promises);
           }).catch(err => {
             alert("Database upload error: " + err.message);
           });
@@ -990,7 +1050,7 @@
 
       const sessionKey = 'viewed_' + id;
       if (!sessionStorage.getItem(sessionKey)) {
-        db.ref('videos_meta/' + id + '/views').transaction(currentViews => {
+        db1.ref('videos_meta/' + id + '/views').transaction(currentViews => {
           return (currentViews || 0) + 1;
         });
         sessionStorage.setItem(sessionKey, 'true');
@@ -998,14 +1058,38 @@
         mainViews.textContent = `views - ${selected.views}`;
       }
 
-      db.ref('videos_data/' + id).once('value').then(snapshot => {
-        const data = snapshot.val();
-        
-        if (data && data.base64) {
-          mainPlayer.src = data.base64;
-          mainPlayer.play().catch(() => {});
+      db1.ref('videos_meta/' + id + '/chunks').once('value').then(chunkSnap => {
+        if (!chunkSnap.exists()) {
+          // Обратная совместимость со старыми видео (где один base64)
+          db1.ref('videos_data/' + id + '/base64').once('value').then(oldSnap => {
+            if (oldSnap.exists()) {
+              mainPlayer.src = oldSnap.val();
+              mainPlayer.play().catch(() => {});
+            } else {
+              alert("Video data not found");
+            }
+          });
         } else {
-          alert("Error");
+          const numChunks = chunkSnap.val();
+          const promises = [];
+          for (let i = 0; i < numChunks; i++) {
+            const targetDb = videoDbs[i % 3];
+            promises.push(targetDb.ref('videos_data/' + id + '/chunk' + i).once('value'));
+          }
+          
+          Promise.all(promises).then(snaps => {
+            let fullBase64 = "";
+            snaps.forEach(snap => {
+              if (snap.exists()) fullBase64 += snap.val();
+            });
+            
+            if (fullBase64) {
+              mainPlayer.src = fullBase64;
+              mainPlayer.play().catch(() => {});
+            } else {
+              alert("Error: Parts of video not found");
+            }
+          });
         }
       }).catch(err => {
         alert("Load error: " + err.message);
@@ -1016,55 +1100,63 @@
     }
 
     function loadComments(videoId) {
-      if (commentsListener) {
-        commentsListener.off();
-      }
+      if (commentsListener1) commentsListener1.off();
+      if (commentsListener2) commentsListener2.off();
+      
+      commentsList.innerHTML = '';
+      currentComments1 = {};
+      currentComments2 = {};
+      
+      commentsListener1 = cdb1.ref('comments/' + videoId);
+      commentsListener2 = cdb2.ref('comments/' + videoId);
+      
+      commentsListener1.on('value', snapshot => {
+        currentComments1 = snapshot.val() || {};
+        renderCommentsUI(videoId);
+      });
+      
+      commentsListener2.on('value', snapshot => {
+        currentComments2 = snapshot.val() || {};
+        renderCommentsUI(videoId);
+      });
+    }
+
+    function renderCommentsUI(videoId) {
       commentsList.innerHTML = '';
       
-      commentsListener = db.ref('comments/' + videoId);
-      commentsListener.on('value', snapshot => {
-        commentsList.innerHTML = '';
-        const data = snapshot.val();
-        let count = 0;
+      const allComments = [];
+      Object.keys(currentComments1).forEach(k => allComments.push({ id: k, dbIndex: 1, ...currentComments1[k] }));
+      Object.keys(currentComments2).forEach(k => allComments.push({ id: k, dbIndex: 2, ...currentComments2[k] }));
+      
+      allComments.sort((a, b) => b.timestamp - a.timestamp);
+      commentsCount.textContent = `Comments (${allComments.length})`;
 
-        if (data) {
-          const sortedComments = Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-          })).sort((a, b) => b.timestamp - a.timestamp);
-
-          count = sortedComments.length;
-
-          sortedComments.forEach(c => {
-            const div = document.createElement('div');
-            div.className = 'comment-item';
-            
-            const deleteBtn = c.author === currentUser 
-              ? `<button class="comment-delete-btn" onclick="deleteComment(event, '${videoId}', '${c.id}')">✕</button>` 
-              : '';
-
-            const date = new Date(c.timestamp);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            const timeString = `${day}.${month}.${year}`;
-
-            div.innerHTML = `
-              <img class="comment-user-avatar" src="${c.avatar || defaultAvatar}" alt="">
-              <div class="comment-content">
-                <div class="comment-meta">
-                  <span class="comment-author">${escapeHTML(c.author)}</span>
-                  <span class="comment-time">${timeString}</span>
-                </div>
-                <div class="comment-text">${escapeHTML(c.text)}</div>
-              </div>
-              ${deleteBtn}
-            `;
-            commentsList.appendChild(div);
-          });
-        }
+      allComments.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'comment-item';
         
-        commentsCount.textContent = `Comments (${count})`;
+        const deleteBtn = c.author === currentUser 
+          ? `<button class="comment-delete-btn" onclick="deleteComment(event, '${videoId}', '${c.id}', ${c.dbIndex})">✕</button>` 
+          : '';
+
+        const date = new Date(c.timestamp);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const timeString = `${day}.${month}.${year}`;
+
+        div.innerHTML = `
+          <img class="comment-user-avatar" src="${c.avatar || defaultAvatar}" alt="">
+          <div class="comment-content">
+            <div class="comment-meta">
+              <span class="comment-author">${escapeHTML(c.author)}</span>
+              <span class="comment-time">${timeString}</span>
+            </div>
+            <div class="comment-text">${escapeHTML(c.text)}</div>
+          </div>
+          ${deleteBtn}
+        `;
+        commentsList.appendChild(div);
       });
     }
 
@@ -1072,7 +1164,9 @@
       const text = commentInput.value.trim();
       if (!text || !activeId || !currentUser) return;
 
-      db.ref('comments/' + activeId).push({
+      const targetDb = Math.random() < 0.5 ? cdb1 : cdb2;
+
+      targetDb.ref('comments/' + activeId).push({
         text: text,
         author: currentUser,
         avatar: currentUserAvatar,
@@ -1098,10 +1192,11 @@
       submitCommentBtn.disabled = true;
     });
 
-    window.deleteComment = function(event, videoId, commentId) {
+    window.deleteComment = function(event, videoId, commentId, dbIndex) {
       event.stopPropagation();
       if (confirm("Delete comment?")) {
-        db.ref(`comments/${videoId}/${commentId}`).remove();
+        const targetDb = dbIndex === 1 ? cdb1 : cdb2;
+        targetDb.ref(`comments/${videoId}/${commentId}`).remove();
       }
     };
 
@@ -1109,7 +1204,7 @@
       event.stopPropagation();
       const newTitle = prompt("Video name", currentTitle);
       if (newTitle !== null && newTitle.trim() !== "" && newTitle !== currentTitle) {
-        db.ref('videos_meta/' + id + '/title').set(newTitle.trim()).then(() => {
+        db1.ref('videos_meta/' + id + '/title').set(newTitle.trim()).then(() => {
           if (activeId === id) {
              mainTitle.textContent = newTitle.trim();
           }
@@ -1135,9 +1230,17 @@
       if (!vid || vid.uploader !== currentUser) return;
 
       if (confirm("Delete video?")) {
-        db.ref('videos_meta/' + id).remove();
-        db.ref('videos_data/' + id).remove();
-        db.ref('comments/' + id).remove();
+        // Удаляем из всех трех баз
+        db1.ref('videos_data/' + id).remove();
+        db2.ref('videos_data/' + id).remove();
+        db3.ref('videos_data/' + id).remove();
+        
+        // Удаляем метаданные
+        db1.ref('videos_meta/' + id).remove();
+        
+        // Удаляем комментарии из двух баз
+        cdb1.ref('comments/' + id).remove();
+        cdb2.ref('comments/' + id).remove();
         
         if (activeId === id) {
           activeId = null;
