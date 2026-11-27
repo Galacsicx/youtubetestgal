@@ -1,4 +1,6 @@
-﻿<head>
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GI.tube</title>
@@ -173,6 +175,12 @@
       color: #ffffff;
     }
 
+    .main-views {
+      font-size: 14px;
+      color: #aaaaaa;
+      margin-top: -4px;
+    }
+
     .sidebar {
       width: 380px;
       flex-shrink: 0;
@@ -262,7 +270,14 @@
       object-fit: cover;
     }
 
-    .delete-btn {
+    .action-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 4px;
+    }
+
+    .delete-btn, .edit-btn {
       background: transparent;
       border: none;
       color: #717171;
@@ -276,6 +291,11 @@
     .delete-btn:hover {
       color: #ff4e4e;
       background-color: rgba(255, 78, 78, 0.15);
+    }
+
+    .edit-btn:hover {
+      color: #3ea6ff;
+      background-color: rgba(62, 166, 255, 0.15);
     }
 
     .auth-overlay {
@@ -435,6 +455,7 @@
             <span id="mainUploaderName" class="main-uploader-name"></span>
           </div>
           <div class="current-title" id="mainTitle"></div>
+          <div class="main-views" id="mainViews">views - 0</div>
         </div>
       </div>
     </div>
@@ -474,6 +495,7 @@
     const mobileBackBtn = document.getElementById('mobileBackBtn');
     const mainPlayer = document.getElementById('mainPlayer');
     const mainTitle = document.getElementById('mainTitle');
+    const mainViews = document.getElementById('mainViews');
     const mainUploaderAvatar = document.getElementById('mainUploaderAvatar');
     const mainUploaderName = document.getElementById('mainUploaderName');
     const playlistEl = document.getElementById('playlist');
@@ -663,7 +685,8 @@
                 title: item.title,
                 uploader: authorName,
                 avatar: authorAvatar,
-                timestamp: item.timestamp || 0
+                timestamp: item.timestamp || 0,
+                views: item.views || 0
               });
             });
             
@@ -675,6 +698,7 @@
               mainUploaderAvatar.src = cur.avatar;
               mainUploaderName.textContent = cur.uploader;
               mainTitle.textContent = cur.title;
+              mainViews.textContent = `views - ${cur.views}`;
             } else if (activeId) {
               activeId = null;
               playerWrapper.style.display = 'none';
@@ -708,7 +732,8 @@
           newVideoRef.set({
             title: cleanName,
             uploader: currentUser,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            views: 0
           }).then(() => {
             return db.ref('videos_data/' + videoId).set({
               base64: base64Data
@@ -740,9 +765,15 @@
         item.className = 'video-item' + (vid.id === activeId ? ' active' : '');
         item.onclick = () => playVideo(vid.id);
 
-        const deleteBtnHTML = vid.uploader === currentUser 
-          ? `<button class="delete-btn" onclick="deleteVideo(event, '${vid.id}')">✕</button>` 
-          : '';
+        let actionBtnsHTML = '';
+        if (vid.uploader === currentUser) {
+            actionBtnsHTML = `
+                <div class="action-btns">
+                    <button class="edit-btn" onclick="editVideo(event, '${vid.id}', '${escapeHTML(vid.title)}')" title="Edit title">✎</button>
+                    <button class="delete-btn" onclick="deleteVideo(event, '${vid.id}')" title="Delete">✕</button>
+                </div>
+            `;
+        }
 
         item.innerHTML = `
           <div class="thumb-box">
@@ -754,8 +785,11 @@
               <img class="meta-avatar" src="${vid.avatar}" alt="">
               <span>${escapeHTML(vid.uploader)}</span>
             </div>
+            <div class="item-meta" style="margin-top: 2px;">
+              <span>views - ${vid.views}</span>
+            </div>
           </div>
-          ${deleteBtnHTML}
+          ${actionBtnsHTML}
         `;
         playlistEl.appendChild(item);
       });
@@ -778,9 +812,20 @@
       mainUploaderAvatar.src = selected.avatar;
       mainUploaderName.textContent = selected.uploader;
       mainTitle.textContent = selected.title;
+      mainViews.textContent = `views - ${selected.views}`;
       
       mainPlayer.src = "";
       mainPlayer.pause();
+
+      const sessionKey = 'viewed_' + id;
+      if (!sessionStorage.getItem(sessionKey)) {
+        db.ref('videos_meta/' + id + '/views').transaction(currentViews => {
+          return (currentViews || 0) + 1;
+        });
+        sessionStorage.setItem(sessionKey, 'true');
+        selected.views++;
+        mainViews.textContent = `views - ${selected.views}`;
+      }
 
       db.ref('videos_data/' + id).once('value').then(snapshot => {
         const data = snapshot.val();
@@ -797,6 +842,20 @@
 
       renderPlaylist();
     }
+
+    window.editVideo = function(event, id, currentTitle) {
+      event.stopPropagation();
+      const newTitle = prompt("Enter new video title:", currentTitle);
+      if (newTitle !== null && newTitle.trim() !== "" && newTitle !== currentTitle) {
+        db.ref('videos_meta/' + id + '/title').set(newTitle.trim()).then(() => {
+          if (activeId === id) {
+             mainTitle.textContent = newTitle.trim();
+          }
+        }).catch(err => {
+          alert("Error updating title: " + err.message);
+        });
+      }
+    };
 
     window.showMobileList = function() {
       if (window.innerWidth <= 950) {
