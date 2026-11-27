@@ -370,12 +370,6 @@
       justify-content: center;
     }
 
-    .thumb-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
     .item-info {
       flex: 1;
       min-width: 0;
@@ -440,10 +434,10 @@
       background-color: rgba(255, 255, 255, 0.15);
     }
 
-    .auth-overlay, .modal-overlay {
+    .auth-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.8);
+      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -451,11 +445,11 @@
       padding: 20px;
     }
 
-    .auth-overlay.hidden, .modal-overlay.hidden {
+    .auth-overlay.hidden {
       display: none;
     }
 
-    .auth-box, .modal-box {
+    .auth-box {
       background: #181818;
       border: 1px solid #272727;
       border-radius: 16px;
@@ -463,11 +457,6 @@
       width: 100%;
       max-width: 380px;
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-    }
-
-    .modal-box h3 {
-      margin-bottom: 20px;
-      font-size: 18px;
     }
 
     .auth-tabs {
@@ -496,7 +485,7 @@
       color: #ffffff;
     }
 
-    .auth-box input, .modal-box input[type="text"] {
+    .auth-box input {
       width: 100%;
       background: #0f0f0f;
       border: 1px solid #272727;
@@ -508,7 +497,7 @@
       outline: none;
     }
 
-    .auth-box input:focus, .modal-box input[type="text"]:focus {
+    .auth-box input:focus {
       border-color: #3f3f3f;
     }
 
@@ -519,7 +508,7 @@
       min-height: 18px;
     }
 
-    .auth-submit, .modal-save {
+    .auth-submit {
       width: 100%;
       background: #ffffff;
       color: #000000;
@@ -532,53 +521,8 @@
       transition: background 0.2s;
     }
 
-    .auth-submit:hover, .modal-save:hover {
+    .auth-submit:hover {
       background: #e5e5e5;
-    }
-
-    .modal-cancel {
-      width: 100%;
-      background: transparent;
-      color: #aaaaaa;
-      border: none;
-      padding: 12px;
-      margin-top: 8px;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-
-    .modal-cancel:hover {
-      background: #272727;
-      color: #ffffff;
-    }
-
-    .thumb-preview {
-      width: 100%;
-      height: 120px;
-      background: #0f0f0f;
-      border: 1px dashed #3f3f3f;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-      overflow: hidden;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .thumb-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .thumb-preview span {
-      color: #717171;
-      font-size: 14px;
     }
 
     @media (max-width: 950px) {
@@ -613,22 +557,6 @@
         <div class="auth-error" id="authError"></div>
         <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
       </form>
-    </div>
-  </div>
-
-  <div class="modal-overlay hidden" id="editModal">
-    <div class="modal-box">
-      <h3>Edit Video</h3>
-      <input type="text" id="editTitleInput" placeholder="Video Title">
-      
-      <input type="file" id="editThumbInput" accept="image/*" style="display: none;">
-      <div class="thumb-preview" id="editThumbPreview" onclick="document.getElementById('editThumbInput').click()">
-        <span id="thumbPreviewText">Click to upload thumbnail</span>
-        <img id="thumbPreviewImg" src="" style="display: none;">
-      </div>
-
-      <button class="modal-save" id="saveEditBtn">Save Changes</button>
-      <button class="modal-cancel" id="cancelEditBtn">Cancel</button>
     </div>
   </div>
 
@@ -692,6 +620,8 @@
   </div>
 
   <script>
+    // ===== ВПИШИ СЮДА СВОИ API КЛЮЧИ ДЛЯ ВСЕХ 5 БАЗ =====
+    
     const firebaseConfig1 = {
       apiKey: "ТВОЙ_API_KEY",
       authDomain: "testtubefiles.firebaseapp.com",
@@ -742,20 +672,22 @@
       appId: ""
     };
 
+    // Инициализация всех 5 приложений
     const app1 = firebase.initializeApp(firebaseConfig1);
     const app2 = firebase.initializeApp(firebaseConfig2, 'freemb');
     const app3 = firebase.initializeApp(firebaseConfig3, 'freemb2');
     const app4 = firebase.initializeApp(firebaseConfig4, 'commentmb');
     const app5 = firebase.initializeApp(firebaseConfig5, 'commentmb2');
 
-    const db1 = app1.database();
-    const db2 = app2.database();
-    const db3 = app3.database();
-    const cdb1 = app4.database();
-    const cdb2 = app5.database();
+    // Получаем доступ к базам данных
+    const db1 = app1.database(); // Основная (юзеры, мета, часть видео)
+    const db2 = app2.database(); // Видео часть 2
+    const db3 = app3.database(); // Видео часть 3
+    const cdb1 = app4.database(); // Комменты часть 1
+    const cdb2 = app5.database(); // Комменты часть 2
 
     const videoDbs = [db1, db2, db3];
-    const CHUNK_SIZE = 8 * 1024 * 1024;
+    const CHUNK_SIZE = 8 * 1024 * 1024; // Размер куска видео (8 МБ)
 
     let videos = [];
     let activeId = null;
@@ -766,9 +698,6 @@
     let currentComments1 = {};
     let currentComments2 = {};
     
-    let editingVideoId = null;
-    let newThumbnailBase64 = null;
-
     const MIN_PASSWORD = 6;
     const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,}$/;
 
@@ -804,14 +733,6 @@
     const headerAvatar = document.getElementById('headerAvatar');
     const headerUsername = document.getElementById('headerUsername');
     const logoutBtn = document.getElementById('logoutBtn');
-
-    const editModal = document.getElementById('editModal');
-    const editTitleInput = document.getElementById('editTitleInput');
-    const editThumbInput = document.getElementById('editThumbInput');
-    const thumbPreviewImg = document.getElementById('thumbPreviewImg');
-    const thumbPreviewText = document.getElementById('thumbPreviewText');
-    const saveEditBtn = document.getElementById('saveEditBtn');
-    const cancelEditBtn = document.getElementById('cancelEditBtn');
 
     let mode = 'login';
     const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaaaaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
@@ -992,8 +913,7 @@
                 uploader: authorName,
                 avatar: authorAvatar,
                 timestamp: item.timestamp || 0,
-                views: item.views || 0,
-                thumbnail: item.thumbnail || null
+                views: item.views || 0
               });
             });
             
@@ -1028,24 +948,24 @@
         
         reader.onload = function(e) {
           const base64Data = e.target.result;
-          const videoId = db1.ref('videos_meta').push().key; 
+          const newVideoRef = db1.ref('videos_meta').push();
+          const videoId = newVideoRef.key;
           const numChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
-          const promises = [];
 
-          for (let i = 0; i < numChunks; i++) {
-            const chunk = base64Data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-            const targetDb = videoDbs[i % 3];
-            promises.push(targetDb.ref('videos_data/' + videoId + '/chunk' + i).set(chunk));
-          }
-
-          Promise.all(promises).then(() => {
-            return db1.ref('videos_meta/' + videoId).set({
-              title: cleanName,
-              uploader: currentUser,
-              timestamp: Date.now(),
-              views: 0,
-              chunks: numChunks
-            });
+          newVideoRef.set({
+            title: cleanName,
+            uploader: currentUser,
+            timestamp: Date.now(),
+            views: 0,
+            chunks: numChunks
+          }).then(() => {
+            const promises = [];
+            for (let i = 0; i < numChunks; i++) {
+              const chunk = base64Data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+              const targetDb = videoDbs[i % 3];
+              promises.push(targetDb.ref('videos_data/' + videoId + '/chunk' + i).set(chunk));
+            }
+            return Promise.all(promises);
           }).catch(err => {
             alert("Database upload error: " + err.message);
           });
@@ -1077,19 +997,15 @@
         if (vid.uploader === currentUser) {
             actionBtnsHTML = `
                 <div class="action-btns">
-                    <button class="edit-btn" onclick="openEditModal(event, '${vid.id}')">✎</button>
+                    <button class="edit-btn" onclick="editVideo(event, '${vid.id}', '${escapeHTML(vid.title)}')">✎</button>
                     <button class="delete-btn" onclick="deleteVideo(event, '${vid.id}')">✕</button>
                 </div>
             `;
         }
 
-        const thumbContent = vid.thumbnail 
-          ? `<img src="${vid.thumbnail}" alt="thumbnail">` 
-          : `<div style="color: #717171; font-size: 24px;">▶</div>`;
-
         item.innerHTML = `
           <div class="thumb-box">
-            ${thumbContent}
+            <div style="color: #717171; font-size: 24px;">▶</div>
           </div>
           <div class="item-info">
             <div class="item-title">${escapeHTML(vid.title)}</div>
@@ -1144,6 +1060,7 @@
 
       db1.ref('videos_meta/' + id + '/chunks').once('value').then(chunkSnap => {
         if (!chunkSnap.exists()) {
+          // Обратная совместимость со старыми видео (где один base64)
           db1.ref('videos_data/' + id + '/base64').once('value').then(oldSnap => {
             if (oldSnap.exists()) {
               mainPlayer.src = oldSnap.val();
@@ -1283,72 +1200,19 @@
       }
     };
 
-    window.openEditModal = function(event, id) {
+    window.editVideo = function(event, id, currentTitle) {
       event.stopPropagation();
-      const vid = videos.find(v => v.id === id);
-      if (!vid || vid.uploader !== currentUser) return;
-
-      editingVideoId = id;
-      newThumbnailBase64 = null;
-      
-      editTitleInput.value = vid.title;
-      
-      if (vid.thumbnail) {
-        thumbPreviewImg.src = vid.thumbnail;
-        thumbPreviewImg.style.display = 'block';
-        thumbPreviewText.style.display = 'none';
-      } else {
-        thumbPreviewImg.src = "";
-        thumbPreviewImg.style.display = 'none';
-        thumbPreviewText.style.display = 'block';
+      const newTitle = prompt("Video name", currentTitle);
+      if (newTitle !== null && newTitle.trim() !== "" && newTitle !== currentTitle) {
+        db1.ref('videos_meta/' + id + '/title').set(newTitle.trim()).then(() => {
+          if (activeId === id) {
+             mainTitle.textContent = newTitle.trim();
+          }
+        }).catch(err => {
+          alert("Error updating title: " + err.message);
+        });
       }
-
-      editModal.classList.remove('hidden');
     };
-
-    editThumbInput.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        newThumbnailBase64 = evt.target.result;
-        thumbPreviewImg.src = newThumbnailBase64;
-        thumbPreviewImg.style.display = 'block';
-        thumbPreviewText.style.display = 'none';
-      };
-      reader.readAsDataURL(file);
-      editThumbInput.value = '';
-    });
-
-    cancelEditBtn.addEventListener('click', () => {
-      editModal.classList.add('hidden');
-      editingVideoId = null;
-      newThumbnailBase64 = null;
-    });
-
-    saveEditBtn.addEventListener('click', () => {
-      if (!editingVideoId) return;
-      
-      const newTitle = editTitleInput.value.trim();
-      if (!newTitle) {
-        alert("Title cannot be empty.");
-        return;
-      }
-
-      const updates = { title: newTitle };
-      if (newThumbnailBase64) {
-        updates.thumbnail = newThumbnailBase64;
-      }
-
-      db1.ref('videos_meta/' + editingVideoId).update(updates).then(() => {
-        editModal.classList.add('hidden');
-        editingVideoId = null;
-        newThumbnailBase64 = null;
-      }).catch(err => {
-        alert("Error updating: " + err.message);
-      });
-    });
 
     window.showMobileList = function() {
       if (window.innerWidth <= 950) {
@@ -1366,10 +1230,15 @@
       if (!vid || vid.uploader !== currentUser) return;
 
       if (confirm("Delete video?")) {
+        // Удаляем из всех трех баз
         db1.ref('videos_data/' + id).remove();
         db2.ref('videos_data/' + id).remove();
         db3.ref('videos_data/' + id).remove();
+        
+        // Удаляем метаданные
         db1.ref('videos_meta/' + id).remove();
+        
+        // Удаляем комментарии из двух баз
         cdb1.ref('comments/' + id).remove();
         cdb2.ref('comments/' + id).remove();
         
